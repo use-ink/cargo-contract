@@ -33,9 +33,9 @@ let args = contract_build::ExecuteArgs {
     keep_debug_symbols: false,
     extra_lints: false,
     output_type: OutputType::Json,
-    skip_clippy_and_linting: false,
     image: ImageVariant::Default,
-    metadata_spec: MetadataSpec::Ink,
+    metadata_spec: Some(MetadataSpec::Ink),
+    target_dir: None,
 };
 
 contract_build::execute(args);

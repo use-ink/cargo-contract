@@ -14,6 +14,35 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use std::{
+    fs,
+    path::{
+        Path,
+        PathBuf,
+    },
+};
+
+use anyhow::Result;
+use colored::Colorize;
+use contract_metadata::{
+    Compiler,
+    Contract,
+    ContractMetadata,
+    Language,
+    Source,
+    SourceCompiler,
+    SourceContractBinary,
+    SourceLanguage,
+    User,
+};
+use ink_metadata::InkProject;
+use semver::Version;
+use serde::{
+    Deserialize,
+    Serialize,
+};
+use url::Url;
+
 use crate::{
     BuildMode,
     Features,
@@ -36,30 +65,6 @@ use crate::{
         Workspace,
     },
 };
-
-use anyhow::Result;
-use colored::Colorize;
-use contract_metadata::{
-    Compiler,
-    Contract,
-    ContractMetadata,
-    Language,
-    Source,
-    SourceCompiler,
-    SourceContractBinary,
-    SourceLanguage,
-    User,
-};
-use ink_metadata::InkProject;
-use semver::Version;
-use std::{
-    fs,
-    path::{
-        Path,
-        PathBuf,
-    },
-};
-use url::Url;
 
 /// Artifacts resulting from metadata generation.
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -105,7 +110,7 @@ struct ExtendedMetadataResult {
 /// Information about the settings used to build a particular ink! contract.
 ///
 /// Note that this should be an optional part of the metadata since it may not necessarily
-/// translate to other languages (e.g ask!, Solidity).
+/// translate to other languages (e.g. ask!, Solidity).
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct BuildInfo {
     /// The Rust toolchain used to build the contract.
@@ -123,6 +128,13 @@ impl TryFrom<BuildInfo> for serde_json::Map<String, serde_json::Value> {
         let tmp = serde_json::to_string(&build_info)?;
         serde_json::from_str(&tmp)
     }
+}
+
+/// Multi ABI metadata from by ink! codegen.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CodegenMetadata {
+    ink: Option<InkProject>,
+    solidity: Option<ink_metadata::sol::ContractMetadata>,
 }
 
 /// Generates a file with metadata describing the ABI of the smart contract.
@@ -174,6 +186,12 @@ pub fn execute(
         #[cfg(not(windows))]
         let link_dead_code = "\x1f-Clink-dead-code";
 
+        let mut abi_cfg = String::new();
+        if let Some(abi) = crate_metadata.abi {
+            abi_cfg.push('\x1f');
+            abi_cfg.push_str(&abi.cargo_encoded_rustflag());
+        }
+
         let cmd = util::cargo_cmd(
             "run",
             args,
@@ -181,25 +199,32 @@ pub fn execute(
             verbosity,
             vec![(
                 "CARGO_ENCODED_RUSTFLAGS",
-                Some(format!("--cap-lints=allow{link_dead_code}")),
+                Some(format!("--cap-lints=allow{link_dead_code}{abi_cfg}")),
             )],
         );
         let output = cmd.stdout_capture().run()?;
-
+        let codegen_meta: CodegenMetadata = serde_json::from_slice(&output.stdout)?;
         match metadata_artifacts {
             MetadataArtifacts::Ink(ink_metadata_artifacts) => {
-                let ink_meta: serde_json::Map<String, serde_json::Value> =
-                    serde_json::from_slice(&output.stdout)?;
+                let ink_project = codegen_meta
+                    .ink
+                    .ok_or_else(|| anyhow::anyhow!("Expected ink! metadata"))?;
+                let ink_meta = match serde_json::to_value(&ink_project)? {
+                    serde_json::Value::Object(meta) => meta,
+                    _ => anyhow::bail!("Expected ink! metadata object"),
+                };
                 let metadata =
                     ContractMetadata::new(source, contract, None, user, ink_meta);
 
                 write_metadata(ink_metadata_artifacts, metadata, &verbosity, false)?;
             }
             MetadataArtifacts::Solidity(solidity_metadata_artifacts) => {
-                let ink_project: InkProject = serde_json::from_slice(&output.stdout)?;
-                let sol_abi = solidity_metadata::generate_abi(&ink_project)?;
+                let sol_meta = codegen_meta.solidity.ok_or_else(|| {
+                    anyhow::anyhow!("Expected Solidity compatibility metadata")
+                })?;
+                let sol_abi = solidity_metadata::generate_abi(&sol_meta)?;
                 let metadata = solidity_metadata::generate_metadata(
-                    &ink_project,
+                    &sol_meta,
                     sol_abi,
                     source,
                     contract,

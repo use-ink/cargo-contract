@@ -2,7 +2,7 @@
 
 todo reread this whole file
 
-Docker image based on the minimalistic Debian image `bitnami/minideb:bullseye-amd64`.
+Docker image based on the minimalistic Debian image `debian:stable-slim`.
 
 Used for reproducible builds in `cargo contract build --verifiable`
 
@@ -28,6 +28,7 @@ docker run -d \
 ```
 
 For multi-contract projects, like in the example below:
+
 ```
 my-app/
 ├─ ink-project-a/
@@ -38,10 +39,10 @@ my-app/
 │  ├─ lib.rs
 ├─ rust-toolchain
 ```
+
 Make sure to run the command inside `my-app` directory and specify a relative manifest path
 to the root contract:
 `cargo contract build --verifiable --release --manifest-path ink-project-a/Cargo.toml`
-
 
 **Apple Silicon performance**
 
@@ -54,7 +55,7 @@ _Settings_ -> _Features in development_ tab in Docker Desktop App.
 Build docker image:
 
 ```bash
-docker buildx build -t useink/contracts-verifiable:0.0.1-local --build-arg CARGO_CONTRACT_VERSION=4.1.0 .
+docker buildx build -t useink/contracts-verifiable:0.0.1-local --build-arg CARGO_CONTRACT_VERSION=6.0.0-alpha .
 ```
 
 Run docker container:

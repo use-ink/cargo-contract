@@ -31,8 +31,10 @@ use std::{
     },
 };
 
+use crate::Abi;
+
 /// Creates a new contract project from the template.
-pub fn new_contract_project<P>(name: &str, dir: Option<P>) -> Result<()>
+pub fn new_contract_project<P>(name: &str, dir: Option<P>, abi: Option<Abi>) -> Result<()>
 where
     P: AsRef<Path>,
 {
@@ -63,7 +65,7 @@ where
 
     let template = include_bytes!(concat!(env!("OUT_DIR"), "/template.zip"));
 
-    unzip(template, out_dir, Some(name))?;
+    unzip(template, out_dir, Some(name), abi)?;
 
     Ok(())
 }
@@ -73,7 +75,12 @@ where
 // In case `name` is set the zip file is treated as if it were a template for a new
 // contract. Replacements in `Cargo.toml` for `name`-placeholders are attempted in
 // that case.
-fn unzip(template: &[u8], out_dir: PathBuf, name: Option<&str>) -> Result<()> {
+fn unzip(
+    template: &[u8],
+    out_dir: PathBuf,
+    name: Option<&str>,
+    abi: Option<Abi>,
+) -> Result<()> {
     let mut cursor = Cursor::new(Vec::new());
     cursor.write_all(template)?;
     cursor.rewind()?;
@@ -104,12 +111,21 @@ fn unzip(template: &[u8], out_dir: PathBuf, name: Option<&str>) -> Result<()> {
                     }
                 })?;
 
-            if let Some(name) = name {
+            let is_manifest =
+                outpath.file_name().is_some_and(|name| name == "Cargo.toml");
+            if name.is_some() || is_manifest {
                 let mut contents = String::new();
                 file.read_to_string(&mut contents)?;
-                let contents = contents.replace("{{name}}", name);
-                let contents =
-                    contents.replace("{{camel_name}}", &name.to_upper_camel_case());
+
+                if let Some(name) = name {
+                    contents = contents.replace("{{name}}", name);
+                    contents =
+                        contents.replace("{{camel_name}}", &name.to_upper_camel_case());
+                }
+
+                let resolve_abi = abi.unwrap_or_default();
+                contents = contents.replace("{{abi}}", resolve_abi.as_ref());
+
                 outfile.write_all(contents.as_bytes())?;
             } else {
                 let mut v = Vec::new();
@@ -140,7 +156,8 @@ mod tests {
     #[test]
     fn rejects_hyphenated_name() {
         with_tmp_dir(|path| {
-            let result = new_contract_project("rejects-hyphenated-name", Some(path));
+            let result =
+                new_contract_project("rejects-hyphenated-name", Some(path), None);
             assert!(result.is_err(), "Should fail");
             assert_eq!(
                 result.err().unwrap().to_string(),
@@ -153,7 +170,7 @@ mod tests {
     #[test]
     fn rejects_name_with_period() {
         with_tmp_dir(|path| {
-            let result = new_contract_project("../xxx", Some(path));
+            let result = new_contract_project("../xxx", Some(path), None);
             assert!(result.is_err(), "Should fail");
             assert_eq!(
                 result.err().unwrap().to_string(),
@@ -166,7 +183,7 @@ mod tests {
     #[test]
     fn rejects_name_beginning_with_number() {
         with_tmp_dir(|path| {
-            let result = new_contract_project("1xxx", Some(path));
+            let result = new_contract_project("1xxx", Some(path), None);
             assert!(result.is_err(), "Should fail");
             assert_eq!(
                 result.err().unwrap().to_string(),
@@ -180,8 +197,8 @@ mod tests {
     fn contract_cargo_project_already_exists() {
         with_tmp_dir(|path| {
             let name = "test_contract_cargo_project_already_exists";
-            let _ = new_contract_project(name, Some(path));
-            let result = new_contract_project(name, Some(path));
+            let _ = new_contract_project(name, Some(path), None);
+            let result = new_contract_project(name, Some(path), None);
 
             assert!(result.is_err(), "Should fail");
             assert_eq!(
@@ -199,13 +216,35 @@ mod tests {
             let dir = path.join(name);
             fs::create_dir_all(&dir).unwrap();
             fs::File::create(dir.join(".gitignore")).unwrap();
-            let result = new_contract_project(name, Some(path));
+            let result = new_contract_project(name, Some(path), None);
 
             assert!(result.is_err(), "Should fail");
             assert_eq!(
                 result.err().unwrap().to_string(),
                 "File .gitignore already exists"
             );
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn create_project_with_sol_abi() {
+        with_tmp_dir(|path| {
+            let name = "project_with_sol_abi";
+            let dir = path.join(name);
+            fs::create_dir_all(&dir).unwrap();
+            let result = new_contract_project(name, Some(path), Some(Abi::Solidity));
+
+            assert!(result.is_ok(), "Should succeed");
+
+            let manifest_path = dir.join("Cargo.toml");
+            let manifest_content = fs::read_to_string(manifest_path).unwrap();
+
+            assert!(
+                manifest_content.contains("[package.metadata.ink-lang]\nabi = \"sol\""),
+                "manifest should contain ABI declaration"
+            );
+
             Ok(())
         })
     }

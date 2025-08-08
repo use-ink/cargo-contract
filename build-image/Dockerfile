@@ -1,4 +1,4 @@
-FROM docker.io/bitnami/minideb:bullseye-amd64 as slimmed-rust
+FROM debian:stable-slim AS slimmed-rust
 
 # The rust version to use
 ARG RUST_VERSION=stable
@@ -13,20 +13,21 @@ ARG CARGO_CONTRACT_REV
 # Tag to use in git repository
 ARG CARGO_CONTRACT_TAG
 # gcc package version
-ARG GCC_VERSION=4:10.2.1-1
+ARG GCC_VERSION=4:12.2.0-3
 # wget package version
-ARG WGET_VERSION=1.21-1+deb11u1
+ARG WGET_VERSION=1.21.3-1+deb12u1
 # g++ package version
-ARG G_VERSION=4:10.2.1-1
-ARG MUSL_V=1.2.2-1
+ARG G_VERSION=4:12.2.0-3
+ARG MUSL_V=1.2.3-1
 # The Rust version used by `ink_linting`.
 # See https://github.com/use-ink/ink/blob/master/linting/rust-toolchain.toml.
 ARG RUST_LINTER_VERSION=nightly-2025-02-20
+ARG TARGETARCH
 
 # Metadata
 LABEL ink.use.image.vendor="Use Ink" \
     ink.use.image.title="useink/contracts-verifiable" \
-    ink.use.image.description="Inherits from docker.io/bitnami/minideb:bullseye. \
+    ink.use.image.description="Inherits from debian:stable-slim. \
     rust nightly, clippy, rustfmt, miri, rust-src, rustc-dev, grcov, rust-covfix, \
     llvm-tools-preview, cargo-contract, xargo, binaryen, parallel, codecov, ink, solang" \
     ink.use.image.documentation="https://github.com/use-ink/cargo-contract/blob/master/\
@@ -45,28 +46,40 @@ LABEL ink.use.image.vendor="Use Ink" \
 
 ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
-    PATH=/usr/local/cargo/bin:$PATH
+    PATH=/usr/local/cargo/bin:$PATH \
+    ARCH=$TARGETARCH
 
 # Minimal Rust dependencies.
 RUN set -eux \
-    && apt-get update && apt-get -y install wget=${WGET_VERSION} \
-    && url="https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-gnu/rustup-init" \
+    && apt-get update && apt-get -y install wget=${WGET_VERSION} gcc=${GCC_VERSION} \
+    # Map target architecture to Rust format
+    # NOTE: `arm64` support is for debugging this `Dockerfile` locally only! No `arm64` images are to be published.
+    && case ${TARGETARCH} in \
+            "amd64")  RUST_ARCH="x86_64"  ;; \
+            "arm64")  RUST_ARCH="aarch64" ;; \
+            *)        RUST_ARCH=${TARGETARCH} ;; \
+    esac \
+    && url="https://static.rust-lang.org/rustup/dist/${RUST_ARCH}-unknown-linux-gnu/rustup-init" \
     && wget "$url" \
     && chmod +x rustup-init \
-    && ./rustup-init -y --no-modify-path --profile minimal --component rust-src,rustfmt,clippy --default-toolchain $RUST_VERSION  \
+    && ./rustup-init -y --no-modify-path --profile minimal --component rust-src,rustfmt,clippy --default-toolchain $RUST_VERSION \
     && rm rustup-init \
-    # Install nightly toolchain required by `cargo contract build --verifiable --lint` command
+    # Install nightly toolchain required by `cargo contract lint --extra-lints` command
     && rustup install ${RUST_LINTER_VERSION} --profile minimal \
     && rustup component add rust-src --toolchain ${RUST_LINTER_VERSION} \
     && chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
     && rustup --version \
     && cargo --version \
     && rustc --version \
+    # Clean up layer
     && apt-get remove -y --auto-remove wget \
-    && apt-get -y install gcc=${GCC_VERSION} \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean \
+    && apt-get autoclean \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/archives/* \
+        /usr/share/doc/* /usr/share/man/* /usr/share/locale/* /var/log/* /var/cache/debconf/*
 
-FROM slimmed-rust as cc-builder
+FROM slimmed-rust AS cc-builder
 ARG CARGO_CONTRACT_VERSION
 ARG GCC_VERSION
 ARG G_VERSION
@@ -100,23 +113,15 @@ RUN apt-get -y update && apt-get -y install gcc=${GCC_VERSION} g++=${G_VERSION} 
     fi \
     && echo "Executing ${COMMAND}" \
     && eval "${COMMAND}" \
-    # Install cargo-dylint, dylint-link required by `cargo contract build --verifiable --lint` command
+    # Install cargo-dylint, dylint-link required by `cargo contract lint --extra-lints` command
     && cargo +${RUST_LINTER_VERSION} install cargo-dylint dylint-link \
-    # Check if build with linting works
+    # Check if build and lint works
     && mkdir -p $DYLINT_DRIVER_PATH \
     && cargo contract new test \
-    # Generate /usr/local/dylint_drivers/nightly-2024-02-20-x86_64-unknown-linux-gnu/dylint-driver bin
-    && cd test && cargo contract build --lint --verbose --release && cd .. \
-    && rm -rf test \
-    # apt clean up
-    && apt-get remove -y gnupg libssl-dev pkg-config \
-    && apt-get autoremove -y \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    # Cleanup cargo
-    && rm -rf ${CARGO_HOME}/"registry" ${CARGO_HOME}/"git"
+    # Generate /usr/local/dylint_drivers/${RUST_LINTER_VERSION}-{ARCH}-unknown-linux-gnu/dylint-driver binary
+    && cd test && cargo contract build --verbose --release && cargo contract lint --extra-lints && cd ..
 
-FROM slimmed-rust as ink-dev
+FROM slimmed-rust AS ink-dev
 
 COPY --from=cc-builder /usr/local/dylint_drivers /usr/local/dylint_drivers
 COPY --from=cc-builder /usr/local/cargo/bin/cargo-contract /usr/local/bin/cargo-contract

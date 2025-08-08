@@ -153,6 +153,11 @@ impl TranscoderBuilder {
 
         let path_key = PathKey::from_type::<T>();
         let type_id = this.types_by_path.get(&path_key);
+        tracing::trace!(
+            "Registering custom decoder for type `{:?}` with path `{:?}`",
+            type_id,
+            path_key
+        );
 
         match type_id {
             Some(type_id) => {

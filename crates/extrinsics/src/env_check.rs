@@ -22,7 +22,7 @@ impl Environment for DefaultEnvironment {
     const MAX_EVENT_TOPICS: usize = 4;
     type ChainExtension = NoChainExtension;
 }
- */
+*/
 fn get_node_env_fields(
     registry: &PortableRegistry,
     _verbosity: &Verbosity, // todo
@@ -106,13 +106,13 @@ pub fn compare_node_env_with_contract(
     contract_metadata: &InkProject,
     verbosity: &Verbosity,
 ) -> Result<()> {
-    // Compare the field `field_id` in the path of `path_segments` from the
-    // `node_registry` with the fitting type from the `ink::Environment`.
-    //
-    // Errors if comparison unsuccessful.
-
-    // **Does not error if the field is not found in the node metadata! A warning will
-    // be printed to `stderr` instead.**
+    /// Compare the field `field_id` in the path of `path_segments` from the
+    /// `node_registry` with the fitting type from the `ink::Environment`.
+    ///
+    /// Errors if comparison unsuccessful.
+    ///
+    /// **Does not error if the field is not found in the node metadata! A warning will
+    /// be printed to `stderr` instead.**
     fn compare_if_possible(
         node_registry: &PortableRegistry,
         contract_metadata: &InkProject,
@@ -129,8 +129,8 @@ pub fn compare_node_env_with_contract(
                 "Warning:".yellow().bold(),
                 // todo check website link still works after website revamp
                 format!("The chain you are connecting to does not support validating that your environmental contract types are the same as the chain types.\n\
-                 We cannot check if the types defined for your contract's `Environment` trait are the same as used on this chain.\
-                 See https://use.ink/v6/faq#type-comparison for more info.\n\n\
+                 We cannot check if the types defined for your contract's `Environment` trait are the same as used on this chain. \
+                 See https://use.ink/docs/v6/faq#type-comparison for more info.\n\n\
                  Specifically we failed to find the field `{}::{}` in the chain metadata.\n\
                  This field is compared against your contract's `Environment::{}` type.",
                     path_segments.join("::"),
@@ -177,9 +177,7 @@ pub fn compare_node_env_with_contract(
         node_registry,
         contract_metadata,
         verbosity,
-        // we use `wasm` here, as that is what `pallet-revive` still uses as a name for
-        // this module
-        vec!["pallet_revive", "wasm", "CodeInfo"],
+        vec!["pallet_revive", "vm", "CodeInfo"],
         "owner",
     )?;
     compare_if_possible(
@@ -267,8 +265,8 @@ fn compare_type(
                 bail_with_msg(
                     path_segments,
                     type_name,
-                    &format!("{:?}", contract_arr_type),
-                    &format!("{:?}", node_arr_type),
+                    &format!("{contract_arr_type:?}"),
+                    &format!("{node_arr_type:?}"),
                 )?;
             }
             return Ok(())
@@ -281,8 +279,8 @@ fn compare_type(
             bail_with_msg(
                 path_segments,
                 type_name,
-                &format!("{:?}", tt_def),
-                &format!("{:?}", node_compact_type),
+                &format!("{tt_def:?}"),
+                &format!("{node_compact_type:?}"),
             )?;
         }
         return Ok(())
@@ -291,8 +289,8 @@ fn compare_type(
         bail_with_msg(
             path_segments,
             type_name,
-            &format!("{:?}", tt_def),
-            &format!("{:?}", type_def),
+            &format!("{tt_def:?}"),
+            &format!("{type_def:?}"),
         )?;
     }
     Ok(())
@@ -385,8 +383,7 @@ mod tests {
 
     #[derive(Encode, Decode, TypeInfo, serde::Serialize, serde::Deserialize)]
     #[scale_info(replace_segment("env_check", "pallet_revive"))]
-    // the `wasm` here is because `pallet-revive` still uses that name for their module
-    #[scale_info(replace_segment("tests", "wasm"))]
+    #[scale_info(replace_segment("tests", "vm"))]
     #[scale_info(replace_segment("PalletRevive", "CodeInfo"))]
     pub struct PalletRevive {
         owner: EnvironmentType<AccountId32>,
@@ -587,17 +584,14 @@ mod tests {
 
         let valid =
             compare_node_env_with_contract(&portable, &ink_project, &Verbosity::Default);
-        //panic!("{:?}", valid);
 
         drop(guard);
-        //panic!("foo");
         assert!(valid.is_ok(), "{:?}", valid.err());
 
         let contents = fs::read_to_string(&tmp_file).unwrap();
         assert!(
             !contents.contains("Warning"),
-            "still found warning: {}",
-            contents
+            "still found warning: {contents}"
         );
     }
 

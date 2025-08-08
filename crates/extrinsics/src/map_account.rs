@@ -50,6 +50,7 @@ use subxt::{
         DefaultExtrinsicParams,
         ExtrinsicParams,
     },
+    ext::subxt_rpcs::methods::legacy::DryRunDecodeError,
     tx,
     utils::H160,
 };
@@ -142,19 +143,28 @@ where
     /// instantiation on the blockchain.
     ///
     /// Returns the dry run simulation result, or an error in case of failure.
-    pub async fn map_account_dry_run(&self) -> Result<()> {
+    pub async fn map_account_dry_run(&self) -> Result<u128> {
         let call = MapAccount::new().build();
-        let res =
+        let (bytes, partial_fee_estimation) =
             dry_run_extrinsic(&self.client, &self.rpc, &call, self.opts.signer()).await?;
+        let res = bytes.into_dry_run_result();
         match res {
-            DryRunResult::Success => Ok(()),
-            DryRunResult::DispatchError(err) => {
+            Ok(DryRunResult::Success) => Ok(partial_fee_estimation),
+            Ok(DryRunResult::DispatchError(err)) => {
                 Err(anyhow::format_err!("dispatch error: {:?}", err))
             }
-            DryRunResult::TransactionValidityError => {
+            Ok(DryRunResult::TransactionValidityError) => {
                 // todo seems like an external bug: https://github.com/paritytech/polkadot-sdk/issues/7305
                 // Err(anyhow::format_err!("validity err"))
-                Ok(())
+                Ok(partial_fee_estimation)
+            }
+            Err(err) => {
+                match err {
+                    DryRunDecodeError::WrongNumberOfBytes => {
+                        Err(anyhow::anyhow!("decode error: dry run result was less than 2 bytes, which is invalid"))
+                    }
+                    DryRunDecodeError::InvalidBytes => Err(anyhow::anyhow!("decode error: dry run bytes are not valid"))
+                }
             }
         }
     }

@@ -1,6 +1,6 @@
 [package]
 name = "contract-extrinsics"
-version = "6.0.0-alpha"
+version = "6.0.0-alpha.1"
 authors = ["Use Ink <ink@use.ink>"]
 edition = "2024"
 
@@ -11,48 +11,53 @@ documentation = "https://docs.rs/contract-extrinsics"
 homepage = "https://www.substrate.io/"
 description = "Library defining extrinsics for smart contracts on polkadot-sdk"
 keywords = ["polkavm", "ink", "riscv", "blockchain", "edsl"]
-include = ["Cargo.toml", "*.rs", "LICENSE",]
+include = ["Cargo.toml", "*.rs", "LICENSE"]
 
 [dependencies]
-contract-build = { version = "6.0.0-alpha", path = "../build" }
-contract-metadata = { version = "6.0.0-alpha", path = "../metadata" }
-contract-transcode = { version = "6.0.0-alpha", path = "../transcode" }
+contract-build = { version = "6.0.0-alpha.1", path = "../build" }
+contract-metadata = { version = "6.0.0-alpha.1", path = "../metadata" }
+contract-transcode = { version = "6.0.0-alpha.1", path = "../transcode" }
 
-anyhow = "1.0.95"
+anyhow = "1.0.98"
 blake2 = { version = "0.10.6", default-features = false }
 futures = { version = "0.3.31", default-features = false, features = ["std"] }
 itertools = { version = "0.14", default-features = false }
 tracing = "0.1.41"
 scale = { package = "parity-scale-codec", version = "3.6.12", features = ["derive"] }
 colored = "3.0.0"
-serde = { version = "1.0.217", default-features = false, features = ["derive"] }
-serde_json = "1.0.133"
+serde = { version = "1.0.219", default-features = false, features = ["derive"] }
+serde_json = "1.0.140"
 url = { version = "2.5.4", features = ["serde"] }
-rust_decimal = "1.36"
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+rust_decimal = "1.37.2"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net"] }
 scale-info = "2.11.6"
-subxt = "0.38.1"
+subxt = "0.42.1"
 hex = "0.4.3"
 derivative = "2.2.0"
 
-sp-core = { version = "36.1.0", default-features = false }
-sp-runtime = "41.1.0"
-sp-weights = { version = "31.1.0", default-features = false }
-pallet-revive = "0.5.0"
-pallet-revive-uapi = { version = "0.4.0", default-features = false, features = ["unstable-hostfn", "scale"] }
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cb629d46ebf00aa65624013a61f9c69ebf02b0b4", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cb629d46ebf00aa65624013a61f9c69ebf02b0b4" }
+sp-weights = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cb629d46ebf00aa65624013a61f9c69ebf02b0b4", default-features = false }
+pallet-revive = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cb629d46ebf00aa65624013a61f9c69ebf02b0b4" }
+pallet-revive-uapi = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cb629d46ebf00aa65624013a61f9c69ebf02b0b4", default-features = false, features = ["unstable-hostfn", "scale"] }
 
-ink_metadata = { git = "https://github.com/use-ink/ink", branch = "master", default-features = false, features = ["std", "derive"] }
-ink_env = { git = "https://github.com/use-ink/ink", branch = "master" }
+ink_metadata = { workspace = true }
+ink_env = { workspace = true }
 
 [dev-dependencies]
-ink = { git = "https://github.com/use-ink/ink", branch = "master" }
-assert_cmd = "2.0.16"
+ink = { git = "https://github.com/use-ink/ink", branch = "master", features = ["unstable-hostfn"], version = "6.0.0-alpha.1" }
+assert_cmd = "2.0.17"
 regex = "1.11.1"
 predicates = "3.1.3"
 tempfile = "3.16.0"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
-subxt-signer = { version = "0.38.1", features = ["subxt", "sr25519"] }
+subxt-signer = { version = "0.42.1", features = ["subxt", "sr25519"] }
 stdio-override = "0.2.0"
+
+# todo Remove once the `polkadot-sdk` compilation error
+# for `tokio` is fixed (https://github.com/use-ink/ink/pull/2557).
+[build-dependencies]
+tokio = { version = "1", features = ["net"], default-features = false }
 
 [features]
 integration-tests = []

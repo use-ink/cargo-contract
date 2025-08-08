@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
+    Abi,
     ManifestPath,
     Target,
 };
@@ -40,7 +41,7 @@ use std::{
 use toml::value;
 use url::Url;
 
-/// Relevant metadata obtained from Cargo.toml.
+/// Relevant metadata obtained from `Cargo.toml`.
 #[derive(Debug)]
 pub struct CrateMetadata {
     pub manifest_path: ManifestPath,
@@ -50,10 +51,20 @@ pub struct CrateMetadata {
     pub original_code: PathBuf,
     pub dest_binary: PathBuf,
     pub ink_version: Version,
+    pub abi: Option<Abi>,
     pub documentation: Option<Url>,
     pub homepage: Option<Url>,
     pub user: Option<Map<String, Value>>,
+    /// Directory for intermediate build artifacts.
+    ///
+    /// Analog to `--target-dir` for cargo.
     pub target_directory: PathBuf,
+    /// Directory for final build artifacts.
+    ///
+    /// Analog to the unstable `--artifact-dir` for cargo.
+    ///
+    /// Ref: <https://doc.rust-lang.org/cargo/commands/cargo-build.html#output-options>
+    pub artifact_directory: PathBuf,
     pub target_file_path: PathBuf,
     pub metadata_spec_path: PathBuf,
 }
@@ -67,20 +78,39 @@ impl CrateMetadata {
 
     /// Parses the contract manifest and returns relevant metadata.
     pub fn collect(manifest_path: &ManifestPath) -> Result<Self> {
+        Self::collect_with_target_dir(manifest_path, None)
+    }
+
+    /// Parses the contract manifest and returns relevant metadata.
+    pub fn collect_with_target_dir(
+        manifest_path: &ManifestPath,
+        target_dir: Option<PathBuf>,
+    ) -> Result<Self> {
         let (metadata, root_package) = get_cargo_metadata(manifest_path)?;
-        let mut target_directory = metadata.target_directory.as_path().join("ink");
+        let mut target_directory = target_dir
+            .as_deref()
+            .unwrap_or_else(|| metadata.target_directory.as_std_path())
+            .join("ink");
 
         // Normalize the final contract artifact name.
         let contract_artifact_name = root_package.name.replace('-', "_");
+
+        // Retrieves ABI from package metadata (if specified).
+        let abi = package_abi(&root_package).transpose()?;
 
         if let Some(lib_name) = &root_package
             .targets
             .iter()
             .find(|target| target.kind.contains(&TargetKind::Lib))
         {
-            if lib_name.name != root_package.name {
-                // warn user if they still specify a lib name different from the
-                // package name
+            // Warn user if they still specify a lib name different from the
+            // package name.
+            // NOTE: If no lib name is specified, cargo "normalizes" the package name
+            // and auto inserts it as the lib name. So we need to normalize the package
+            // name before making the comparison.
+            // Ref: <https://github.com/rust-lang/cargo/blob/3c5bb555caf3fad02927fcfd790ee525da17ce5a/src/cargo/util/toml/targets.rs#L177-L178>
+            let expected_lib_name = root_package.name.replace("-", "_");
+            if lib_name.name != expected_lib_name {
                 use colored::Colorize;
                 eprintln!(
                     "{} the `name` field in the `[lib]` section of the `Cargo.toml`, \
@@ -94,21 +124,36 @@ impl CrateMetadata {
 
         let absolute_manifest_path = manifest_path.absolute_directory()?;
         let absolute_workspace_root = metadata.workspace_root.canonicalize()?;
+        // Allows the final build artifacts (e.g. contract binary, metadata e.t.c) to
+        // be placed in a separate directory from the "target" directory used for
+        // intermediate build artifacts. This is also similar to `cargo`'s
+        // currently unstable `--artifact-dir`, but it's only used internally
+        // (at the moment).
+        // Ref: <https://doc.rust-lang.org/cargo/commands/cargo-build.html#output-options>
+        let mut artifact_directory = target_directory.clone();
         if absolute_manifest_path != absolute_workspace_root {
             // If the contract is a package in a workspace, we use the package name
             // as the name of the sub-folder where we put the `.contract` bundle.
-            target_directory = target_directory.join(contract_artifact_name.clone());
+            artifact_directory = artifact_directory.join(contract_artifact_name.clone());
         }
+
+        // Adds ABI sub-folders to target directory for intermediate build artifacts.
+        // This is necessary because the ABI is passed as a `cfg` flag,
+        // and this ensures that `cargo` will recompile all packages (including proc
+        // macros) for current ABI (similar to how it handles profiles and target
+        // triples).
+        target_directory.push("abi");
+        target_directory.push(abi.unwrap_or_default().as_ref());
 
         // {target_dir}/{target}/release/{contract_artifact_name}.{extension}
         let mut original_code = target_directory.clone();
         original_code.push(Target::llvm_target_alias());
         original_code.push("release");
-        original_code.push(root_package.name.clone());
+        original_code.push(root_package.name.as_str());
         original_code.set_extension(Target::source_extension());
 
         // {target_dir}/{contract_artifact_name}.code
-        let mut dest_code = target_directory.clone();
+        let mut dest_code = artifact_directory.clone();
         dest_code.push(contract_artifact_name.clone());
         dest_code.set_extension(Target::dest_extension());
 
@@ -116,7 +161,7 @@ impl CrateMetadata {
             .packages
             .iter()
             .find_map(|package| {
-                if package.name == "ink" || package.name == "ink_lang" {
+                if package.name.as_str() == "ink" || package.name.as_str() == "ink_lang" {
                     Some(
                         Version::parse(&package.version.to_string())
                             .expect("Invalid ink crate version string"),
@@ -138,15 +183,17 @@ impl CrateMetadata {
             cargo_meta: metadata,
             root_package,
             contract_artifact_name,
-            original_code: original_code.into(),
-            dest_binary: dest_code.into(),
+            original_code,
+            dest_binary: dest_code,
             ink_version,
+            abi,
             documentation,
             homepage,
             user,
-            target_file_path: target_directory.join(".target").into(),
-            metadata_spec_path: target_directory.join(".metadata_spec").into(),
-            target_directory: target_directory.into(),
+            target_file_path: artifact_directory.join(".target"),
+            metadata_spec_path: artifact_directory.join(".metadata_spec"),
+            target_directory,
+            artifact_directory,
         };
         Ok(crate_metadata)
     }
@@ -154,14 +201,14 @@ impl CrateMetadata {
     /// Get the path of the contract metadata file
     pub fn metadata_path(&self) -> PathBuf {
         let metadata_file = format!("{}.json", self.contract_artifact_name);
-        self.target_directory.join(metadata_file)
+        self.artifact_directory.join(metadata_file)
     }
 
     /// Get the path of the contract bundle, containing metadata + code.
     pub fn contract_bundle_path(&self) -> PathBuf {
-        let target_directory = self.target_directory.clone();
+        let artifact_directory = self.artifact_directory.clone();
         let fname_bundle = format!("{}.contract", self.contract_artifact_name);
-        target_directory.join(fname_bundle)
+        artifact_directory.join(fname_bundle)
     }
 }
 
@@ -240,4 +287,112 @@ fn get_cargo_toml_metadata(manifest_path: &ManifestPath) -> Result<ExtraMetadata
         homepage,
         user,
     })
+}
+
+/// Returns ABI specified (if any) for the package (i.e. via
+/// `package.metadata.ink-lang.abi`).
+fn package_abi(package: &Package) -> Option<Result<Abi>> {
+    let abi_str = package.metadata.get("ink-lang")?.get("abi")?.as_str()?;
+    let abi = match abi_str {
+        "ink" => Abi::Ink,
+        "sol" => Abi::Solidity,
+        "all" => Abi::All,
+        _ => return Some(Err(anyhow::anyhow!("Unknown ABI: {abi_str}"))),
+    };
+
+    Some(Ok(abi))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use super::{
+        get_cargo_metadata,
+        package_abi,
+    };
+    use crate::{
+        new_contract_project,
+        util::tests::with_tmp_dir,
+        Abi,
+        ManifestPath,
+    };
+
+    #[test]
+    fn valid_package_abi_works() {
+        fn test_project_with_abi(abi: Abi) {
+            with_tmp_dir(|path| {
+                let name = "project_with_valid_abi";
+                let dir = path.join(name);
+                fs::create_dir_all(&dir).unwrap();
+                let result = new_contract_project(name, Some(path), Some(abi));
+                assert!(result.is_ok(), "Should succeed");
+
+                let manifest_path = ManifestPath::new(dir.join("Cargo.toml")).unwrap();
+                let (_, root_package) = get_cargo_metadata(&manifest_path).unwrap();
+                let parsed_abi = package_abi(&root_package)
+                    .expect("Expected an ABI declaration")
+                    .expect("Expected a valid ABI");
+                assert_eq!(parsed_abi, abi);
+
+                Ok(())
+            });
+        }
+
+        test_project_with_abi(Abi::Ink);
+        test_project_with_abi(Abi::Solidity);
+        test_project_with_abi(Abi::All);
+    }
+
+    #[test]
+    fn missing_package_abi_works() {
+        with_tmp_dir(|path| {
+            let name = "project_with_no_abi";
+            let dir = path.join(name);
+            fs::create_dir_all(&dir).unwrap();
+            let result = new_contract_project(name, Some(path), None);
+            assert!(result.is_ok(), "Should succeed");
+
+            let cargo_toml = dir.join("Cargo.toml");
+            let mut manifest_content = fs::read_to_string(&cargo_toml).unwrap();
+            manifest_content = manifest_content
+                .replace("[package.metadata.ink-lang]\nabi = \"ink\"", "");
+            let result = fs::write(&cargo_toml, manifest_content);
+            assert!(result.is_ok(), "Should succeed");
+
+            let manifest_path = ManifestPath::new(cargo_toml).unwrap();
+            let (_, root_package) = get_cargo_metadata(&manifest_path).unwrap();
+            let parsed_abi = package_abi(&root_package);
+            assert!(parsed_abi.is_none(), "Should be None");
+
+            Ok(())
+        });
+    }
+
+    #[test]
+    fn invalid_package_abi_fails() {
+        with_tmp_dir(|path| {
+            let name = "project_with_invalid_abi";
+            let dir = path.join(name);
+            fs::create_dir_all(&dir).unwrap();
+            let result = new_contract_project(name, Some(path), None);
+            assert!(result.is_ok(), "Should succeed");
+
+            let cargo_toml = dir.join("Cargo.toml");
+            let mut manifest_content = fs::read_to_string(&cargo_toml).unwrap();
+            manifest_content =
+                manifest_content.replace("abi = \"ink\"", "abi = \"move\"");
+            let result = fs::write(&cargo_toml, manifest_content);
+            assert!(result.is_ok(), "Should succeed");
+
+            let manifest_path = ManifestPath::new(cargo_toml).unwrap();
+            let (_, root_package) = get_cargo_metadata(&manifest_path).unwrap();
+            let parsed_abi =
+                package_abi(&root_package).expect("Expected an ABI declaration");
+            assert!(parsed_abi.is_err(), "Should be Err");
+            assert!(parsed_abi.unwrap_err().to_string().contains("Unknown ABI"));
+
+            Ok(())
+        });
+    }
 }

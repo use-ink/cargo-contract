@@ -21,11 +21,13 @@ use contract_metadata::{
     ContractMetadata,
     compatibility::check_contract_ink_compatibility,
 };
+pub use lint::lint;
 use which as _;
 
 mod args;
 mod crate_metadata;
 mod docker;
+mod lint;
 pub mod metadata;
 mod new;
 mod solidity_metadata;
@@ -72,9 +74,12 @@ pub use self::{
     },
 };
 
-pub use docker::{
-    ImageVariant,
-    docker_build,
+use std::{
+    cmp::PartialEq,
+    fmt,
+    fs,
+    path::PathBuf,
+    str,
 };
 
 use anyhow::{
@@ -83,36 +88,17 @@ use anyhow::{
     bail,
 };
 use colored::Colorize;
+pub use docker::{
+    docker_build,
+    ImageVariant,
+};
 use regex::Regex;
 use semver::Version;
-use std::{
-    cmp::PartialEq,
-    fs,
-    path::{
-        Path,
-        PathBuf,
-    },
-    process::Command,
-    str,
-};
 
 /// Version of the currently executing `cargo-contract` binary.
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-/// Configuration of the linting module.
-///
-/// Ensure it is kept up-to-date when updating `cargo-contract`.
-pub(crate) mod linting {
-    /// Toolchain used to build ink_linting:
-    /// https://github.com/use-ink/ink/blob/master/linting/rust-toolchain.toml
-    pub const TOOLCHAIN_VERSION: &str = "nightly-2025-02-20";
-    /// Git repository with ink_linting libraries
-    pub const GIT_URL: &str = "https://github.com/use-ink/ink";
-    /// Git revision number of the linting crate
-    pub const GIT_REV: &str = "87a97b244f7eb30fe04b9dba59294af9f91646d4";
-}
-
-/// Result of linking an ELF woth PolkaVM.
+/// Result of linking an ELF with PolkaVM.
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct LinkerSizeResult {
     /// The original ELF size.
@@ -135,9 +121,9 @@ pub struct ExecuteArgs {
     pub keep_debug_symbols: bool,
     pub extra_lints: bool,
     pub output_type: OutputType,
-    pub skip_clippy_and_linting: bool,
     pub image: ImageVariant,
-    pub metadata_spec: MetadataSpec,
+    pub metadata_spec: Option<MetadataSpec>,
+    pub target_dir: Option<PathBuf>,
 }
 
 /// Result of the build process.
@@ -257,6 +243,71 @@ impl BuildResult {
     }
 }
 
+/// ABI spec for the ink! project.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Default,
+    clap::ValueEnum,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+#[serde(rename_all = "lowercase")]
+pub enum Abi {
+    /// ink! ABI spec.
+    #[default]
+    #[clap(name = "ink")]
+    #[serde(rename = "ink")]
+    Ink,
+    /// Solidity ABI spec.
+    #[clap(name = "sol")]
+    #[serde(rename = "sol")]
+    Solidity,
+    /// Support both ink! and Solidity ABI specs.
+    #[clap(name = "all")]
+    All,
+}
+
+impl AsRef<str> for Abi {
+    fn as_ref(&self) -> &str {
+        match self {
+            Self::Ink => "ink",
+            Self::Solidity => "sol",
+            Self::All => "all",
+        }
+    }
+}
+
+impl fmt::Display for Abi {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.as_ref())
+    }
+}
+
+impl Abi {
+    /// Returns the `rustc` `cfg` flag for the ABI.
+    pub fn rustflag(&self) -> String {
+        format!("--cfg ink_abi=\"{self}\" --check-cfg cfg(ink_abi,values(\"ink\",\"sol\",\"all\"))")
+    }
+
+    /// Returns the "encoded" `rustc` `cfg` flag for the ABI
+    /// (i.e. as expected by `CARGO_ENCODED_RUSTFLAGS`).
+    pub fn cargo_encoded_rustflag(&self) -> String {
+        format!("--cfg\x1fink_abi=\"{self}\"\x1f--check-cfg\x1fcfg(ink_abi,values(\"ink\",\"sol\",\"all\"))")
+    }
+
+    /// Returns the default metadata spec for the ABI.
+    fn metadata_spec(&self) -> MetadataSpec {
+        match self {
+            Abi::Ink | Abi::All => MetadataSpec::Ink,
+            Abi::Solidity => MetadataSpec::Solidity,
+        }
+    }
+}
+
 /// Executes the supplied cargo command on the project in the specified directory,
 /// defaults to the current directory.
 ///
@@ -304,7 +355,7 @@ fn exec_cargo_for_onchain_target(
 
         let mut features = features.clone();
         if build_mode == &BuildMode::Debug {
-            features.push("ink/ink-debug");
+            features.push("ink/ink-debug".to_string());
         } else {
             args.push("-Zbuild-std-features=panic_immediate_abort".to_owned());
         }
@@ -322,18 +373,34 @@ fn exec_cargo_for_onchain_target(
         // depends on some warning to be enabled. Until we figure that out we need
         // to live with duplicated warnings. For the metadata build we can disable
         // warnings.
-        let rustflags = {
+        let mut rustflags = {
             let common_flags = "-Clinker-plugin-lto\x1f-Clink-arg=-zstack-size=4096";
             if let Some(target_flags) = Target::rustflags() {
-                format!("{}\x1f{}", common_flags, target_flags)
+                format!("{common_flags}\x1f{target_flags}")
             } else {
                 common_flags.to_string()
             }
         };
+        // Sets ABI `cfg` flags (if necessary).
+        if let Some(abi) = crate_metadata.abi {
+            rustflags.push('\x1f');
+            let abi_cfg_flags = abi.cargo_encoded_rustflag();
+            rustflags.push_str(&abi_cfg_flags);
 
-        fs::create_dir_all(&crate_metadata.target_directory)?;
+            // Sets a custom `rustc` wrapper which passes compiler flags to `rustc`,
+            // because `cargo` doesn't pass compiler flags to proc macros and build
+            // scripts when the `--target` flag is set.
+            // See `util::rustc_wrapper::env_vars` docs for details.
+            if let Some(rustc_wrapper_envs) =
+                util::rustc_wrapper::env_vars(crate_metadata)?
+            {
+                env.extend(rustc_wrapper_envs);
+            }
+        }
+        // Sets env var for passing `rustc` flags.
         env.push(("CARGO_ENCODED_RUSTFLAGS", Some(rustflags)));
 
+        fs::create_dir_all(&crate_metadata.target_directory)?;
         execute_cargo(util::cargo_cmd(
             command,
             &args,
@@ -453,65 +520,6 @@ fn execute_cargo(cargo: duct::Expression) -> Result<()> {
     }
 }
 
-/// Run linting that involves two steps: `clippy` and `dylint`. Both are mandatory as
-/// they're part of the compilation process and implement security-critical features.
-fn lint(
-    extra_lints: bool,
-    crate_metadata: &CrateMetadata,
-    verbosity: &Verbosity,
-) -> Result<()> {
-    verbose_eprintln!(
-        verbosity,
-        " {} {}",
-        "[==]".bold(),
-        "Checking clippy linting rules".bright_green().bold()
-    );
-    exec_cargo_clippy(crate_metadata, *verbosity)?;
-
-    // TODO (jubnzv): Dylint needs a custom toolchain installed by the user. Currently,
-    // it's required only for RiscV target. We're working on the toolchain integration
-    // and will make this step mandatory for all targets in future releases.
-    // TODO add flag skip linting
-    if extra_lints {
-        verbose_eprintln!(
-            verbosity,
-            " {} {}",
-            "[==]".bold(),
-            "Checking ink! linting rules".bright_green().bold()
-        );
-        exec_cargo_dylint(extra_lints, crate_metadata, *verbosity)?;
-    }
-
-    Ok(())
-}
-
-/// Run cargo clippy on the unmodified manifest.
-fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Result<()> {
-    let args = [
-        "--all-features",
-        // customize clippy lints after the "--"
-        "--",
-        // these are hard errors because we want to guarantee that implicit overflows
-        // and lossy integer conversions never happen
-        // See https://github.com/use-ink/cargo-contract/pull/1190
-        "-Dclippy::arithmetic_side_effects",
-        // See https://github.com/use-ink/cargo-contract/pull/1895
-        // todo remove once the fix for https://github.com/paritytech/parity-scale-codec/issues/713
-        // is released.
-        // "-Dclippy::cast_possible_truncation",
-        "-Dclippy::cast_possible_wrap",
-        "-Dclippy::cast_sign_loss",
-    ];
-    // we execute clippy with the plain manifest no temp dir required
-    execute_cargo(util::cargo_cmd(
-        "clippy",
-        args,
-        crate_metadata.manifest_path.directory(),
-        verbosity,
-        vec![],
-    ))
-}
-
 /// Returns a list of cargo options used for on-chain builds
 fn onchain_cargo_options(crate_metadata: &CrateMetadata) -> Vec<String> {
     vec![
@@ -526,7 +534,6 @@ fn onchain_cargo_options(crate_metadata: &CrateMetadata) -> Vec<String> {
 /// We create a temporary folder, extract the linting driver there and run
 /// `cargo dylint` with it.
 fn exec_cargo_dylint(
-    extra_lints: bool,
     crate_metadata: &CrateMetadata,
     verbosity: Verbosity,
 ) -> Result<()> {
@@ -685,14 +692,31 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
 ///
 /// This feature was introduced in `3.0.0-rc4` with `ink_env/ink-debug`.
 pub fn assert_debug_mode_supported(ink_version: &Version) -> Result<()> {
-    tracing::debug!("Contract version: {:?}", ink_version);
-    let minimum_version = Version::parse("3.0.0-rc4").expect("parsing version failed");
     if ink_version < &minimum_version {
         anyhow::bail!(
             "Building the contract in debug mode requires an ink! version newer than `3.0.0-rc3`!"
         );
     }
     Ok(())
+}
+
+/// Checks whether the specified metadata spec is supported for the specified ABI (if any)
+/// in the contract's manifest.
+fn validate_metadata_spec_for_abi(
+    metadata_spec: &MetadataSpec,
+    abi: Option<&Abi>,
+) -> Result<()> {
+    match (abi, metadata_spec) {
+        (None | Some(Abi::Ink) | Some(Abi::All), MetadataSpec::Ink)
+        | (Some(Abi::Solidity) | Some(Abi::All), MetadataSpec::Solidity) => Ok(()),
+        _ => {
+            Err(anyhow::anyhow!(
+                "Unsupported metadata format `{}` for ABI `{}`",
+                metadata_spec,
+                abi.cloned().unwrap_or_default()
+            ))
+        }
+    }
 }
 
 /// Executes build of the smart contract which produces a PolkaVM binary that is ready for
@@ -710,7 +734,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         unstable_flags,
         extra_lints,
         output_type,
-        metadata_spec,
+        target_dir,
         ..
     } = &args;
 
@@ -719,7 +743,8 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         return docker_build(args)
     }
 
-    let crate_metadata = CrateMetadata::collect(manifest_path)?;
+    let crate_metadata =
+        CrateMetadata::collect_with_target_dir(manifest_path, target_dir.clone())?;
 
     if build_mode == &BuildMode::Debug {
         assert_debug_mode_supported(&crate_metadata.ink_version)?;
@@ -749,6 +774,12 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             (opt_result, None, Some(dest_binary))
         }
         BuildArtifacts::All => {
+            // Specified metadata spec must be supported for the specified contract ABI.
+            let metadata_spec = args.metadata_spec.unwrap_or_else(|| {
+                crate_metadata.abi.unwrap_or_default().metadata_spec()
+            });
+            validate_metadata_spec_for_abi(&metadata_spec, crate_metadata.abi.as_ref())?;
+
             let (opt_result, build_info, dest_binary) =
                 local_build(&crate_metadata, &args).inspect_err(|_| {
                     // build error -> bundle is stale
@@ -809,7 +840,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     Ok(BuildResult {
         dest_binary,
         metadata_result,
-        target_directory: crate_metadata.target_directory,
+        target_directory: crate_metadata.artifact_directory,
         linker_size_result: opt_result,
         build_mode: *build_mode,
         build_artifact: *build_artifact,
@@ -830,16 +861,8 @@ fn local_build(
         build_mode,
         network,
         unstable_flags,
-        extra_lints,
-        skip_clippy_and_linting,
         ..
     } = args;
-
-    if !skip_clippy_and_linting {
-        // We always want to lint first so we don't suppress any warnings when a build is
-        // skipped because of a matching fingerprint.
-        lint(*extra_lints, crate_metadata, verbosity)?;
-    }
 
     let pre_fingerprint = Fingerprint::new(crate_metadata)?;
 
@@ -1041,7 +1064,10 @@ pub fn project_path(path: PathBuf) -> PathBuf {
 #[cfg(test)]
 mod unit_tests {
     use super::*;
-    use crate::Verbosity;
+    use crate::{
+        util::tests::with_tmp_dir,
+        Verbosity,
+    };
     use semver::Version;
 
     #[test]
@@ -1116,5 +1142,92 @@ mod unit_tests {
         // then
         assert!(serialized_result.is_ok());
         assert_eq!(serialized_result.unwrap(), raw_result);
+    }
+
+    #[test]
+    pub fn valid_metadata_spec_for_abi_works() {
+        fn test_project_with_config(metadata_spec: MetadataSpec, abi: Option<Abi>) {
+            with_tmp_dir(|path| {
+                let name = "project_with_valid_config";
+                let dir = path.join(name);
+                fs::create_dir_all(&dir).unwrap();
+                let result = new_contract_project(name, Some(path), abi);
+                assert!(result.is_ok(), "Should succeed");
+
+                let manifest_path = ManifestPath::new(dir.join("Cargo.toml")).unwrap();
+                let crate_metadata = CrateMetadata::collect(&manifest_path).unwrap();
+
+                let result = validate_metadata_spec_for_abi(
+                    &metadata_spec,
+                    crate_metadata.abi.as_ref(),
+                );
+                assert!(result.is_ok(), "Should validate");
+
+                Ok(())
+            });
+        }
+
+        // ink! metadata works with unspecified, "ink" and "all" ABI.
+        test_project_with_config(MetadataSpec::Ink, None);
+        test_project_with_config(MetadataSpec::Ink, Some(Abi::Ink));
+        test_project_with_config(MetadataSpec::Ink, Some(Abi::All));
+
+        // Solidity metadata works with "sol" and "all" ABI.
+        test_project_with_config(MetadataSpec::Solidity, Some(Abi::Solidity));
+        test_project_with_config(MetadataSpec::Solidity, Some(Abi::All));
+    }
+
+    #[test]
+    pub fn invalid_metadata_spec_for_abi_fails() {
+        fn test_project_with_config(
+            metadata_spec: MetadataSpec,
+            abi: Option<Abi>,
+            expected_error: String,
+        ) {
+            with_tmp_dir(|path| {
+                let name = "project_with_invalid_config";
+                let dir = path.join(name);
+                fs::create_dir_all(&dir).unwrap();
+                let result = new_contract_project(name, Some(path), abi);
+                assert!(result.is_ok(), "Should succeed");
+
+                let manifest_path = ManifestPath::new(dir.join("Cargo.toml")).unwrap();
+                let crate_metadata = CrateMetadata::collect(&manifest_path).unwrap();
+
+                let result = validate_metadata_spec_for_abi(
+                    &metadata_spec,
+                    crate_metadata.abi.as_ref(),
+                );
+                assert!(result.is_err(), "Should fail to validate");
+
+                let error = result.unwrap_err();
+                assert_eq!(error.to_string(), expected_error);
+
+                Ok(())
+            });
+        }
+
+        fn error_msg(metadata_spec: MetadataSpec, abi: Abi) -> String {
+            format!("Unsupported metadata format `{metadata_spec}` for ABI `{abi}`")
+        }
+
+        // ink! metadata does NOT work with "sol" ABI.
+        test_project_with_config(
+            MetadataSpec::Ink,
+            Some(Abi::Solidity),
+            error_msg(MetadataSpec::Ink, Abi::Solidity),
+        );
+
+        // Solidity metadata does NOT work with unspecified and "ink" ABI.
+        test_project_with_config(
+            MetadataSpec::Solidity,
+            None,
+            error_msg(MetadataSpec::Solidity, Abi::default()),
+        );
+        test_project_with_config(
+            MetadataSpec::Solidity,
+            Some(Abi::Ink),
+            error_msg(MetadataSpec::Solidity, Abi::Ink),
+        );
     }
 }

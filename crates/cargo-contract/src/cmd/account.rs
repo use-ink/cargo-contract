@@ -44,6 +44,7 @@ use subxt::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
     },
+    config::HashFor,
     ext::{
         codec::Decode,
         scale_decode::IntoVisitor,
@@ -78,14 +79,15 @@ impl AccountCommand {
     where
         <C as Config>::AccountId:
             Serialize + Display + IntoVisitor + Decode + AsRef<[u8]> + FromStr,
-        <C as Config>::Hash: IntoVisitor + Display,
+        HashFor<C>: IntoVisitor + Display,
         <C as Environment>::Balance: Serialize + Debug + IntoVisitor,
         <<C as Config>::AccountId as FromStr>::Err:
-            Into<Box<(dyn std::error::Error)>> + Display,
+            Into<Box<dyn std::error::Error>> + Display,
     {
         let rpc_cli =
             RpcClient::from_url(url_to_string(&self.chain_cli_opts.chain().url()))
-                .await?;
+                .await
+                .map_err(|e| subxt::Error::Rpc(e.into()))?;
         let client = OnlineClient::<C>::from_rpc_client(rpc_cli.clone()).await?;
         let rpc = LegacyRpcMethods::<C>::new(rpc_cli.clone());
 
@@ -110,7 +112,7 @@ impl AccountCommand {
             });
             println!("{}", serde_json::to_string_pretty(&output)?);
         } else {
-            println!("{}", account_id);
+            println!("{account_id}");
         }
         Ok(())
     }

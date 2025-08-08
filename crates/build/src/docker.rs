@@ -127,13 +127,15 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
         verbosity,
         output_type,
         image,
+        target_dir,
         ..
     } = args;
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()?
         .block_on(async {
-            let crate_metadata = CrateMetadata::collect(&manifest_path)?;
+            let crate_metadata =
+                CrateMetadata::collect_with_target_dir(&manifest_path, target_dir)?;
             let host_folder = std::env::current_dir()?;
             let args = compose_build_args()?;
 
@@ -147,7 +149,7 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             let image = match image {
                 ImageVariant::Custom(i) => i.clone(),
                 ImageVariant::Default => {
-                    format!("{}:{}", IMAGE, VERSION)
+                    format!("{IMAGE}:{VERSION}")
                 }
             };
 
@@ -458,7 +460,7 @@ async fn run_build(
         verbosity,
         " {} {}",
         "[==]".bold(),
-        format!("Started the build inside the container: {}", container_name)
+        format!("Started the build inside the container: {container_name}")
             .bright_cyan()
             .bold(),
     );
@@ -582,7 +584,7 @@ async fn show_pull_progress(
 
         let status = info.status.unwrap_or_default();
         if status.starts_with("Digest:") || status.starts_with("Status:") {
-            eprintln!("{}", status);
+            eprintln!("{status}");
             continue
         }
 
@@ -616,13 +618,10 @@ async fn show_pull_progress(
             let clear_line = terminal::Clear(ClearType::CurrentLine);
 
             if status == "Pull complete" {
-                eprintln!("{}{}{}: {}", move_cursor, clear_line, id, status)
+                eprintln!("{move_cursor}{clear_line}{id}: {status}")
             } else {
                 let progress = info.progress.unwrap_or_default();
-                eprintln!(
-                    "{}{}{}: {} {}",
-                    move_cursor, clear_line, id, status, progress
-                )
+                eprintln!("{move_cursor}{clear_line}{id}: {status} {progress}")
             }
         }
     }
