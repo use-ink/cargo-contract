@@ -28,6 +28,7 @@ use std::{
 
 use alloy_json_abi::{
     Constructor,
+    Error as SolError,
     Event,
     Function,
     JsonAbi,
@@ -79,13 +80,21 @@ pub fn generate_abi(meta: &ink_metadata::sol::ContractMetadata) -> Result<JsonAb
             .push(event(evt)?);
     }
 
+    let mut error_abis: BTreeMap<String, Vec<SolError>> = BTreeMap::new();
+    for err in &meta.errors {
+        error_abis
+            .entry(err.name.to_string())
+            .or_default()
+            .push(error(err)?);
+    }
+
     Ok(JsonAbi {
         constructor: Some(ctor_abi),
         fallback: None,
         receive: None,
         functions: fn_abis,
         events: event_abis,
-        errors: BTreeMap::new(),
+        errors: error_abis,
     })
 }
 
@@ -179,4 +188,23 @@ fn param_decl(param: &ink_metadata::sol::ParamMetadata) -> String {
     let name = param.name.as_ref();
     let ty = param.ty.as_ref();
     format!("{ty} {name}")
+}
+
+/// Returns the error ABI representation for an ink! error type.
+fn error(err: &ink_metadata::sol::ErrorMetadata) -> Result<SolError> {
+    let name = err.name.as_ref();
+    let params = err
+        .params
+        .iter()
+        .map(|param| {
+            let param_name = param.name.as_ref();
+            let ty = param.ty.as_ref();
+            format!("{ty} {param_name}",)
+        })
+        .join(",");
+
+    let abi_str = format!("error {name}({params})",);
+    SolError::parse(&abi_str).map_err(|parse_err| {
+        anyhow::anyhow!("Failed to parse abi for error `{}` : {parse_err}", err.name)
+    })
 }
