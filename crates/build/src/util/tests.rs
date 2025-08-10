@@ -110,7 +110,8 @@ pub fn create_executable(path: &Path, content: &str) -> MockGuard {
         }
         pathes
     };
-    env::set_var("PATH", env::join_paths(env_paths).unwrap());
+    // TODO: Audit that the environment access only happens in single-threaded code.
+    unsafe { env::set_var("PATH", env::join_paths(env_paths).unwrap()) };
     guard
 }
 

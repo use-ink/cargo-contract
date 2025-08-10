@@ -212,7 +212,7 @@ impl<C: Config<Signature: From<MultiSignature>>> SignerT<C> for SignerEcdsa<C> {
 
 #[macro_export]
 macro_rules! call_with_config_internal {
-    ($obj:tt ,$function:tt, $config_name:expr, $( ($config_str:literal, $config_obj:ty) ),*) => {
+    ($obj:tt ,$function:tt, $config_name:expr_2021, $( ($config_str:literal, $config_obj:ty) ),*) => {
         match $config_name {
             $(
                 $config_str => $obj.$function::<$config_obj>().await,
@@ -246,7 +246,7 @@ macro_rules! call_with_config_internal {
 /// contain another `::` sub-path.
 #[macro_export]
 macro_rules! call_with_config {
-    ($obj:tt, $function:ident, $config_name:expr) => {{
+    ($obj:tt, $function:ident, $config_name:expr_2021) => {{
         assert!(
             !format!("{}", $config_name).contains("::"),
             "The supplied config name `{}` is not allowed to contain `::`.",

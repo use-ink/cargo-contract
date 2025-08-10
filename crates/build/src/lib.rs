@@ -732,14 +732,14 @@ fn local_build(
         Target::llvm_target(crate_metadata),
     )?;
 
-    let cargo_contract_version = if let Ok(version) = Version::parse(VERSION) {
+    let cargo_contract_version = match Version::parse(VERSION) { Ok(version) => {
         version
-    } else {
+    } _ => {
         anyhow::bail!(
             "Unable to parse version number for the currently running \
                     `cargo-contract` binary."
         );
-    };
+    }};
 
     let build_info = BuildInfo {
         rust_toolchain: util::rust_toolchain()?,

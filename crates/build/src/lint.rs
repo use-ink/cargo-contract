@@ -164,16 +164,16 @@ fn exec_cargo_dylint(
 /// This function takes a `_working_dir` which is only used for unit tests.
 fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     let execute_cmd = |cmd: &mut Command| {
-        let mut child = if let Ok(child) = cmd
+        let mut child = match cmd
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
             .spawn()
-        {
+        { Ok(child) => {
             child
-        } else {
+        } _ => {
             tracing::debug!("Error spawning `{:?}`", cmd);
             return false
-        };
+        }};
 
         child.wait().map(|ret| ret.success()).unwrap_or_else(|err| {
             tracing::debug!("Error waiting for `{:?}`: {:?}", cmd, err);
@@ -182,7 +182,7 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     };
 
     // Check if the required toolchain is present and is installed with `rustup`.
-    if let Ok(output) = Command::new("rustup").arg("toolchain").arg("list").output() {
+    match Command::new("rustup").arg("toolchain").arg("list").output() { Ok(output) => {
         anyhow::ensure!(
             String::from_utf8_lossy(&output.stdout).contains(TOOLCHAIN_VERSION),
             format!(
@@ -195,7 +195,7 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
             )
             .to_string()
             .bright_yellow());
-    } else {
+    } _ => {
         anyhow::bail!(format!(
             "Toolchain `{TOOLCHAIN_VERSION}` was not found!\n\
             This specific version is required to provide additional source code analysis.\n\n\
@@ -206,7 +206,7 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
         )
         .to_string()
         .bright_yellow());
-    }
+    }}
 
     // when testing this function we should never fall back to a `cargo` specified
     // in the env variable, as this would mess with the mocked binaries.

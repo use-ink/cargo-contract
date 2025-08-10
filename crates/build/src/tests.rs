@@ -52,7 +52,7 @@ use std::{
 // The motivation for this is to considerably speed up these tests by only requiring
 // dependencies to be build once across all tests.
 macro_rules! build_tests {
-    ( $abi: expr => [ $($fn:ident),* $(,)* ] ) => {
+    ( $abi: expr_2021 => [ $($fn:ident),* $(,)* ] ) => {
         let tmp_dir = ::tempfile::Builder::new()
             .prefix("cargo-contract-build.test.")
             .tempdir()

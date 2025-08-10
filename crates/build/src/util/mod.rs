@@ -130,7 +130,7 @@ pub fn decode_hex(input: &str) -> Result<Vec<u8>, hex::FromHexError> {
 /// Like `cargo`, we use stderr for verbose output.
 #[macro_export]
 macro_rules! verbose_eprintln {
-    ($verbosity:expr, $($msg:tt)*) => {
+    ($verbosity:expr_2021, $($msg:tt)*) => {
         if $verbosity.is_verbose() {
             ::std::eprintln!($($msg)*);
         }
@@ -142,7 +142,7 @@ pub const DEFAULT_KEY_COL_WIDTH: usize = 12;
 /// Pretty print name value, name right aligned with colour.
 #[macro_export]
 macro_rules! name_value_println {
-    ($name:tt, $value:expr, $width:expr) => {{
+    ($name:tt, $value:expr_2021, $width:expr_2021) => {{
         use colored::Colorize as _;
         ::std::println!(
             "{:>width$} {}",
@@ -151,7 +151,7 @@ macro_rules! name_value_println {
             width = $width,
         );
     }};
-    ($name:tt, $value:expr) => {
+    ($name:tt, $value:expr_2021) => {
         $crate::name_value_println!($name, $value, $crate::DEFAULT_KEY_COL_WIDTH)
     };
 }
