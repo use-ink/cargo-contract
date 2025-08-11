@@ -429,6 +429,7 @@ where
     /// The deployment result provides essential information about the instantiation,
     /// encapsulated in an [`InstantiateExecResult`] object, including the contract's
     /// result, contract address, and token metadata.
+    #[allow(clippy::unnecessary_unwrap)]
     pub async fn instantiate(
         &self,
         gas_limit: Option<Weight>,

@@ -159,10 +159,10 @@ impl UploadCommand {
                 upload_exec.set_storage_deposit_limit(Some(limit.deposit));
             }
 
-            if let Some(chain) = chain.production() {
-                if !upload_exec.opts().contract_artifacts()?.is_verifiable() {
-                    prompt_confirm_unverifiable_upload(&chain.to_string())?
-                }
+            if let Some(chain) = chain.production()
+                && !upload_exec.opts().contract_artifacts()?.is_verifiable()
+            {
+                prompt_confirm_unverifiable_upload(&chain.to_string())?
             }
             let upload_result = upload_exec.upload_code().await?;
             let display_events = DisplayEvents::from_events::<C, C>(

@@ -236,16 +236,15 @@ impl DisplayEvents {
             for field in &event.fields {
                 if verbosity.is_verbose() {
                     let mut value: String = field.value.to_string();
-                    if field.type_name == Some("T::Balance".to_string())
-                        || field.type_name == Some("BalanceOf<T>".to_string())
+                    if (field.type_name == Some("T::Balance".to_string())
+                        || field.type_name == Some("BalanceOf<T>".to_string()))
+                        && let Value::UInt(balance) = field.value
                     {
-                        if let Value::UInt(balance) = field.value {
-                            value = BalanceVariant::<E::Balance>::from(
-                                balance,
-                                Some(token_metadata),
-                            )?
-                            .to_string();
-                        }
+                        value = BalanceVariant::<E::Balance>::from(
+                            balance,
+                            Some(token_metadata),
+                        )?
+                        .to_string();
                     }
                     if field.type_name == Some("H160".to_string()) {
                         // Value is in the format `H160([bytes])`.

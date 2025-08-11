@@ -168,12 +168,13 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
             .spawn()
-        { Ok(child) => {
-            child
-        } _ => {
-            tracing::debug!("Error spawning `{:?}`", cmd);
-            return false
-        }};
+        {
+            Ok(child) => child,
+            _ => {
+                tracing::debug!("Error spawning `{:?}`", cmd);
+                return false
+            }
+        };
 
         child.wait().map(|ret| ret.success()).unwrap_or_else(|err| {
             tracing::debug!("Error waiting for `{:?}`: {:?}", cmd, err);
@@ -182,8 +183,9 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     };
 
     // Check if the required toolchain is present and is installed with `rustup`.
-    match Command::new("rustup").arg("toolchain").arg("list").output() { Ok(output) => {
-        anyhow::ensure!(
+    match Command::new("rustup").arg("toolchain").arg("list").output() {
+        Ok(output) => {
+            anyhow::ensure!(
             String::from_utf8_lossy(&output.stdout).contains(TOOLCHAIN_VERSION),
             format!(
                 "Toolchain `{TOOLCHAIN_VERSION}` was not found!\n\
@@ -195,8 +197,9 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
             )
             .to_string()
             .bright_yellow());
-    } _ => {
-        anyhow::bail!(format!(
+        }
+        _ => {
+            anyhow::bail!(format!(
             "Toolchain `{TOOLCHAIN_VERSION}` was not found!\n\
             This specific version is required to provide additional source code analysis.\n\n\
             Install `rustup` according to https://rustup.rs/ and then run:\
@@ -206,7 +209,8 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
         )
         .to_string()
         .bright_yellow());
-    }}
+        }
+    }
 
     // when testing this function we should never fall back to a `cargo` specified
     // in the env variable, as this would mess with the mocked binaries.

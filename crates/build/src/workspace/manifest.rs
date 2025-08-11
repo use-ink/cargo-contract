@@ -49,10 +49,10 @@ impl ManifestPath {
     /// Create a new [`ManifestPath`], errors if not path to `Cargo.toml`
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
         let manifest = path.as_ref();
-        if let Some(file_name) = manifest.file_name() {
-            if file_name != MANIFEST_FILE {
-                anyhow::bail!("Manifest file must be a Cargo.toml")
-            }
+        if let Some(file_name) = manifest.file_name()
+            && file_name != MANIFEST_FILE
+        {
+            anyhow::bail!("Manifest file must be a Cargo.toml")
         }
         Ok(ManifestPath {
             path: manifest.into(),
@@ -568,13 +568,13 @@ impl PathRewrite {
                     package_name.to_string()
                 };
 
-                if let Some(dependency) = value.as_table_mut() {
-                    if let Some(dep_path) = dependency.get_mut("path") {
-                        self.to_absolute_path(
-                            format!("dependency {package_name}"),
-                            dep_path,
-                        )?;
-                    }
+                if let Some(dependency) = value.as_table_mut()
+                    && let Some(dep_path) = dependency.get_mut("path")
+                {
+                    self.to_absolute_path(
+                        format!("dependency {package_name}"),
+                        dep_path,
+                    )?;
                 }
             }
         }
@@ -635,18 +635,18 @@ fn merge_workspace_with_crate_dependencies(
             if let Some(config) = dependency.get_mut(&key) {
                 // If it's an array we merge the values,
                 // otherwise we keep the crate value.
-                if let toml::Value::Array(value) = value {
-                    if let toml::Value::Array(config) = config {
-                        config.extend(value.clone());
+                if let toml::Value::Array(value) = value
+                    && let toml::Value::Array(config) = config
+                {
+                    config.extend(value.clone());
 
-                        let mut new_config = Vec::new();
-                        for v in config.iter() {
-                            if !new_config.contains(v) {
-                                new_config.push(v.clone());
-                            }
+                    let mut new_config = Vec::new();
+                    for v in config.iter() {
+                        if !new_config.contains(v) {
+                            new_config.push(v.clone());
                         }
-                        *config = new_config;
                     }
+                    *config = new_config;
                 }
             } else {
                 dependency.insert(key.clone(), value.clone());
