@@ -400,14 +400,12 @@ fn exec_cargo_for_onchain_target(
         // Sets env var for passing `rustc` flags.
         env.push(("CARGO_ENCODED_RUSTFLAGS", Some(rustflags)));
 
-        fs::create_dir_all(&crate_metadata.target_directory)?;
-        execute_cargo(util::cargo_cmd(
-            command,
-            &args,
-            manifest_path.directory(),
-            *verbosity,
-            env,
-        ))
+        fs::create_dir_all(&crate_metadata.artifact_directory)?;
+
+        let cmd =
+            util::cargo_cmd(command, &args, manifest_path.directory(), *verbosity, env);
+        tracing::debug!("Executing '{:#?}'", cmd);
+        execute_cargo(cmd)
     };
 
     if unstable_flags.original_manifest {
