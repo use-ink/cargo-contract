@@ -351,13 +351,33 @@ pub fn basic_display_format_extended_contract_info<Balance>(
         MAX_KEY_COL_WIDTH
     );
     name_value_println!(
+        "Storage Bytes",
+        format!("{:?}", info.storage_bytes),
+        MAX_KEY_COL_WIDTH
+    );
+    name_value_println!(
         "Storage Items",
         format!("{:?}", info.storage_items),
         MAX_KEY_COL_WIDTH
     );
     name_value_println!(
-        "Storage Items Deposit",
-        format!("{:?}", info.storage_items_deposit),
+        "Storage Byte Deposit",
+        format!("{:?}", info.storage_byte_deposit),
+        MAX_KEY_COL_WIDTH
+    );
+    name_value_println!(
+        "Storage Item Deposit",
+        format!("{:?}", info.storage_item_deposit),
+        MAX_KEY_COL_WIDTH
+    );
+    name_value_println!(
+        "Storage Base Deposit",
+        format!("{:?}", info.storage_base_deposit),
+        MAX_KEY_COL_WIDTH
+    );
+    name_value_println!(
+        "Immutable Data Length",
+        format!("{:?}", info.immutable_data_len),
         MAX_KEY_COL_WIDTH
     );
     name_value_println!(

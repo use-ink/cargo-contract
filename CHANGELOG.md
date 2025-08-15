@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [Unreleased]
 
 ### Changed
-- Synchronized with `polkadot-sdk/c40b36c3a7c208f9a6837b80812473af3d9ba7f7` ‒ [2101](https://github.com/use-ink/cargo-contract/pull/2101)
+- Synchronized with `polkadot-sdk/c40b36c3a7c208f9a6837b80812473af3d9ba7f7` ‒ [2102](https://github.com/use-ink/cargo-contract/pull/2102)
 
 ## [6.0.0-alpha.1]
 
