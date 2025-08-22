@@ -1546,7 +1546,7 @@ version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fde0e0ec90c9dfb3b4b1a0891a7dcd0e2bffde2f7efed5fe7c9bb00e5bfb915e"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2442,7 +2442,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "778e2ac28f6c47af28e4907f13ffd1e1ddbd400980a9abd7c8df189bf578a5ad"
 dependencies = [
  "libc",
- "windows-sys 0.60.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3706,7 +3706,7 @@ dependencies = [
 [[package]]
 name = "ink"
 version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#2288bfd0b65c52ab7069da3091073d77f601ace8"
+source = "git+https://github.com/use-ink/ink?branch=master#915985369ad647efbbff89f6c42194fdd341d4b7"
 dependencies = [
  "const_format",
  "deranged",
@@ -3732,7 +3732,7 @@ dependencies = [
 [[package]]
 name = "ink_allocator"
 version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#2288bfd0b65c52ab7069da3091073d77f601ace8"
+source = "git+https://github.com/use-ink/ink?branch=master#915985369ad647efbbff89f6c42194fdd341d4b7"
 dependencies = [
  "cfg-if",
 ]
@@ -3740,7 +3740,7 @@ dependencies = [
 [[package]]
 name = "ink_codegen"
 version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#2288bfd0b65c52ab7069da3091073d77f601ace8"
+source = "git+https://github.com/use-ink/ink?branch=master#915985369ad647efbbff89f6c42194fdd341d4b7"
 dependencies = [
  "blake2",
  "derive_more 2.0.1",
@@ -3762,7 +3762,7 @@ dependencies = [
 [[package]]
 name = "ink_engine"
 version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#2288bfd0b65c52ab7069da3091073d77f601ace8"
+source = "git+https://github.com/use-ink/ink?branch=master#915985369ad647efbbff89f6c42194fdd341d4b7"
 dependencies = [
  "blake2",
  "derive_more 2.0.1",
@@ -3779,7 +3779,7 @@ dependencies = [
 [[package]]
 name = "ink_env"
 version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#2288bfd0b65c52ab7069da3091073d77f601ace8"
+source = "git+https://github.com/use-ink/ink?branch=master#915985369ad647efbbff89f6c42194fdd341d4b7"
 dependencies = [
  "blake2",
  "cfg-if",
@@ -3812,7 +3812,7 @@ dependencies = [
 [[package]]
 name = "ink_ir"
 version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#2288bfd0b65c52ab7069da3091073d77f601ace8"
+source = "git+https://github.com/use-ink/ink?branch=master#915985369ad647efbbff89f6c42194fdd341d4b7"
 dependencies = [
  "blake2",
  "either",
@@ -3828,7 +3828,7 @@ dependencies = [
 [[package]]
 name = "ink_macro"
 version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#2288bfd0b65c52ab7069da3091073d77f601ace8"
+source = "git+https://github.com/use-ink/ink?branch=master#915985369ad647efbbff89f6c42194fdd341d4b7"
 dependencies = [
  "ink_codegen",
  "ink_ir",
@@ -3843,7 +3843,7 @@ dependencies = [
 [[package]]
 name = "ink_metadata"
 version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#2288bfd0b65c52ab7069da3091073d77f601ace8"
+source = "git+https://github.com/use-ink/ink?branch=master#915985369ad647efbbff89f6c42194fdd341d4b7"
 dependencies = [
  "derive_more 2.0.1",
  "impl-serde",
@@ -3858,7 +3858,7 @@ dependencies = [
 [[package]]
 name = "ink_prelude"
 version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#2288bfd0b65c52ab7069da3091073d77f601ace8"
+source = "git+https://github.com/use-ink/ink?branch=master#915985369ad647efbbff89f6c42194fdd341d4b7"
 dependencies = [
  "cfg-if",
 ]
@@ -3866,7 +3866,7 @@ dependencies = [
 [[package]]
 name = "ink_primitives"
 version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#2288bfd0b65c52ab7069da3091073d77f601ace8"
+source = "git+https://github.com/use-ink/ink?branch=master#915985369ad647efbbff89f6c42194fdd341d4b7"
 dependencies = [
  "alloy-sol-types",
  "cfg-if",
@@ -3894,7 +3894,7 @@ dependencies = [
 [[package]]
 name = "ink_storage"
 version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#2288bfd0b65c52ab7069da3091073d77f601ace8"
+source = "git+https://github.com/use-ink/ink?branch=master#915985369ad647efbbff89f6c42194fdd341d4b7"
 dependencies = [
  "array-init",
  "cfg-if",
@@ -3912,7 +3912,7 @@ dependencies = [
 [[package]]
 name = "ink_storage_traits"
 version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#2288bfd0b65c52ab7069da3091073d77f601ace8"
+source = "git+https://github.com/use-ink/ink?branch=master#915985369ad647efbbff89f6c42194fdd341d4b7"
 dependencies = [
  "ink_metadata",
  "ink_prelude",
@@ -5978,7 +5978,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.4.15",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -5991,7 +5991,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.9.4",
- "windows-sys 0.60.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -6048,7 +6048,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs 0.26.11",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -8489,7 +8489,7 @@ dependencies = [
  "getrandom 0.3.3",
  "once_cell",
  "rustix 1.0.8",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -8633,9 +8633,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.47.0"
+version = "1.47.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43864ed400b6043a4757a25c7a64a8efde741aed79a056a2fb348a406701bb35"
+checksum = "89e49afdadebb872d3145a5638b59eb0691ea23e46ca484037cfab3b76b95038"
 dependencies = [
  "backtrace",
  "bytes",
@@ -9385,7 +9385,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
