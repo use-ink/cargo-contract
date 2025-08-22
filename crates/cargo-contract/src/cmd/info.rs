@@ -28,6 +28,7 @@ use contract_extrinsics::{
     fetch_all_contracts,
     fetch_contract_binary,
     fetch_contract_info,
+    resolve_h160,
     url_to_string,
     ContractInfo,
     ErrorVariant,
@@ -133,6 +134,11 @@ impl InfoCommand {
             let contract_binary =
                 fetch_contract_binary(&client, &rpc, info_to_json.code_hash()).await?;
 
+            let account_id = resolve_h160::<C, C>(&contract, &rpc, &client).await?;
+            let deposit_account_data =
+                contract_extrinsics::get_account_data::<C, C>(&account_id, &rpc, &client)
+                    .await?;
+
             // Binary flag applied
             if self.binary {
                 if self.output_json {
@@ -151,7 +157,8 @@ impl InfoCommand {
                     serde_json::to_string_pretty(
                         &ExtendedContractInfo::<C::Balance>::new(
                             info_to_json,
-                            &contract_binary
+                            &contract_binary,
+                            deposit_account_data
                         )
                     )?
                 )
@@ -161,6 +168,7 @@ impl InfoCommand {
                 >::new(
                     info_to_json,
                     &contract_binary,
+                    deposit_account_data,
                 ))
             }
             Ok(())
@@ -172,8 +180,13 @@ impl InfoCommand {
 pub struct ExtendedContractInfo<Balance> {
     pub trie_id: TrieId,
     pub code_hash: H256,
+    pub storage_bytes: u32,
     pub storage_items: u32,
-    pub storage_items_deposit: Balance,
+    pub storage_byte_deposit: Balance,
+    pub storage_item_deposit: Balance,
+    pub storage_base_deposit: Balance,
+    pub immutable_data_len: u32,
+
     pub storage_total_deposit: Balance,
     pub source_language: String,
 }
@@ -182,7 +195,11 @@ impl<Balance> ExtendedContractInfo<Balance>
 where
     Balance: serde::Serialize + Copy,
 {
-    pub fn new(contract_info: ContractInfo<Balance>, code: &[u8]) -> Self {
+    pub fn new(
+        contract_info: ContractInfo<Balance>,
+        code: &[u8],
+        deposit_account_data: contract_extrinsics::AccountData<Balance>,
+    ) -> Self {
         let language = match determine_language(code).ok() {
             Some(lang) => lang.to_string(),
             None => "Unknown".to_string(),
@@ -190,9 +207,14 @@ where
         ExtendedContractInfo {
             trie_id: contract_info.trie_id().clone(),
             code_hash: *contract_info.code_hash(),
+            storage_bytes: contract_info.storage_bytes(),
             storage_items: contract_info.storage_items(),
-            storage_items_deposit: contract_info.storage_items_deposit(),
-            storage_total_deposit: contract_info.storage_total_deposit(),
+            storage_byte_deposit: contract_info.storage_byte_deposit(),
+            storage_item_deposit: contract_info.storage_item_deposit(),
+            storage_base_deposit: contract_info.storage_base_deposit(),
+            immutable_data_len: contract_info.immutable_data_len(),
+
+            storage_total_deposit: deposit_account_data.reserved,
             source_language: language,
         }
     }

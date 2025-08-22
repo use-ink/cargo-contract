@@ -32,7 +32,6 @@ use std::option::Option;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     config::HashFor,
-    dynamic::DecodedValueThunk,
     ext::{
         scale_decode::{
             DecodeAsType,
@@ -47,7 +46,7 @@ use subxt::{
 };
 
 /// Return the account data for an account ID.
-async fn get_account_balance<C: Config, E: Environment>(
+pub async fn get_account_data<C: Config, E: Environment>(
     account: &C::AccountId,
     rpc: &LegacyRpcMethods<C>,
     client: &OnlineClient<C>,
@@ -71,31 +70,9 @@ where
     Ok(data)
 }
 
-/// Map a Ethereum address to its original `AccountId32`.
-///
-/// Stores the last 12 byte for addresses that were originally an `AccountId32` instead
-/// of an `H160`. Register your `AccountId32` using [`Pallet::map_account`] in order to
-/// use it with this pallet.
-/// #[pallet::storage]
-/// pub(crate) type AddressSuffix<T: Config> = StorageMap<_, Identity, H160, [u8; 12]>
-/// Fetch the contract info from the storage using the provided client.
-pub async fn fetch_mapped_account<C: Config, E: Environment>(
-    contract: &H160,
-    _rpc: &LegacyRpcMethods<C>,
-    _client: &OnlineClient<C>,
-) -> Result<C::AccountId>
-where
-    C::AccountId: AsRef<[u8]> + Display + IntoVisitor + Decode,
-    HashFor<C>: IntoVisitor,
-    E::Balance: IntoVisitor,
-{
-    let mut raw_account_id = [0xEE; 32];
-    raw_account_id[..20].copy_from_slice(&contract.0[..20]);
-    Decode::decode(&mut &raw_account_id[..])
-        .map_err(|err| anyhow!("AccountId deserialization error: {}", err))
-}
-
 /// Returns the `AccountId32` for a `H160`.
+///
+/// If a mapping for `addr` is not found on the node, a fallback account will be returned.
 pub async fn resolve_h160<C: Config, E: Environment>(
     addr: &H160,
     rpc: &LegacyRpcMethods<C>,
@@ -107,27 +84,37 @@ where
     E::Balance: IntoVisitor,
 {
     let best_block = get_best_block(rpc).await?;
-
     let contract_info_address =
-        dynamic("Revive", "AddressSuffix", vec![Value::from_bytes(addr)]);
+        dynamic("Revive", "OriginalAccount", vec![Value::from_bytes(addr)]);
     let raw_value = client
         .storage()
         .at(best_block)
         .fetch(&contract_info_address)
-        .await?
-        .ok_or_else(|| {
-            anyhow!("No address suffix was found for H160 address {:?}", addr)
-        })?;
-
-    let suffix = raw_value.as_type::<[u8; 12]>()?;
-
-    let mut raw_account_id = [0u8; 32];
-    raw_account_id[..20].copy_from_slice(&addr.0[..20]);
-    raw_account_id[20..].copy_from_slice(&suffix[..12]);
-
-    let account: C::AccountId = Decode::decode(&mut &raw_account_id[..])
-        .map_err(|err| anyhow!("AccountId deserialization error: {}", err))?;
-    Ok(account)
+        .await?;
+    match raw_value {
+        None => {
+            // This typically happens when calling this function with a contract, for
+            // which there is no `AccountId`.
+            fn to_fallback_account_id(address: &H160) -> [u8; 32] {
+                let mut account_id = [0xEE; 32];
+                account_id[..20].copy_from_slice(address.as_bytes());
+                account_id
+            }
+            let fallback = to_fallback_account_id(addr);
+            tracing::debug!("No address suffix was found in the node for H160 address {:?}, using fallback {:?}", addr, fallback);
+            let account_id =
+                <C as Config>::AccountId::decode(&mut &fallback[..]).unwrap();
+            Ok(account_id)
+        }
+        Some(raw_value) => {
+            let raw_account_id = raw_value.as_type::<[u8; 32]>()?;
+            let account: C::AccountId = Decode::decode(&mut &raw_account_id[..])
+                .map_err(|err| {
+                    anyhow!("AccountId from `[u8; 32]` deserialization error: {}", err)
+                })?;
+            Ok(account)
+        }
+    }
 }
 
 /// Fetch the contract info from the storage using the provided client.
@@ -143,74 +130,74 @@ where
 {
     let best_block = get_best_block(rpc).await?;
 
-    let contract_info_address = dynamic(
-        "Revive",
-        "ContractInfoOf",
-        vec![Value::from_bytes(contract)],
-    );
-    let contract_info_value = client
+    let account_info_address =
+        dynamic("Revive", "AccountInfoOf", vec![Value::from_bytes(contract)]);
+    let account_info_value = client
         .storage()
         .at(best_block)
-        .fetch(&contract_info_address)
+        .fetch(&account_info_address)
         .await?
         .ok_or_else(|| anyhow!("No contract was found for address {:?}", contract))?;
 
-    let contract_info_raw = ContractInfoRaw::<E>::new(*contract, contract_info_value)?;
-    let addr = contract_info_raw.get_addr();
+    let account_info = account_info_value.as_type::<PrAccountInfo<E::Balance>>()?;
 
-    let account = fetch_mapped_account::<C, E>(addr, rpc, client).await?;
-    let deposit_account_data = get_account_balance::<C, E>(&account, rpc, client).await?;
-    Ok(contract_info_raw.into_contract_info(deposit_account_data))
+    let contract_info = match account_info.account_type {
+        AccountType::Contract(contract_info) => contract_info,
+        AccountType::Eoa => panic!("Contract address is an EOA!"),
+    };
+
+    Ok(ContractInfo::<E::Balance> {
+        trie_id: contract_info.trie_id.0.into(),
+        code_hash: contract_info.code_hash,
+        storage_bytes: contract_info.storage_bytes,
+        storage_items: contract_info.storage_items,
+        storage_byte_deposit: contract_info.storage_byte_deposit,
+        storage_item_deposit: contract_info.storage_item_deposit,
+        storage_base_deposit: contract_info.storage_base_deposit,
+        immutable_data_len: contract_info.immutable_data_len,
+    })
+}
+
+/// Represents the account information for a contract or an externally owned account
+/// (EOA).
+#[derive(DecodeAsType)]
+#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
+pub struct PrAccountInfo<E: DecodeAsType> {
+    /// The type of the account.
+    pub account_type: AccountType<E>,
+
+    // The  amount that was transferred to this account that is less than the
+    // NativeToEthRatio, and can be represented in the native currency
+    #[allow(dead_code)]
+    pub dust: u32,
+}
+
+/// The account type is used to distinguish between contracts and externally owned
+/// accounts.
+#[derive(DecodeAsType)]
+#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
+pub enum AccountType<E: DecodeAsType> {
+    /// An account that is a contract.
+    Contract(ContractInfo<E>),
+
+    /// An account that is an externally owned account (EOA).
+    Eoa,
 }
 
 /// Struct representing contract info, supporting deposit on either the main or secondary
 /// account.
-struct ContractInfoRaw<E: Environment> {
-    addr: H160,
-    contract_info: ContractInfoOf<E::Balance>,
-}
-
-impl<E: Environment> ContractInfoRaw<E>
-where
-    E::Balance: IntoVisitor,
-{
-    /// Create a new instance of `ContractInfoRaw` based on the provided contract and
-    /// contract info value.
-    pub fn new(addr: H160, contract_info_value: DecodedValueThunk) -> Result<Self> {
-        let contract_info =
-            contract_info_value.as_type::<ContractInfoOf<E::Balance>>()?;
-        Ok(Self {
-            addr,
-            contract_info,
-        })
-    }
-
-    pub fn get_addr(&self) -> &H160 {
-        &self.addr
-    }
-
-    /// Convert `ContractInfoRaw` to `ContractInfo`
-    pub fn into_contract_info(
-        self,
-        deposit: AccountData<E::Balance>,
-    ) -> ContractInfo<E::Balance> {
-        ContractInfo {
-            trie_id: self.contract_info.trie_id.0.into(),
-            code_hash: self.contract_info.code_hash,
-            storage_items: self.contract_info.storage_items,
-            storage_items_deposit: self.contract_info.storage_item_deposit,
-            storage_total_deposit: deposit.reserved,
-        }
-    }
-}
-
+#[derive(DecodeAsType)]
+#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
 #[derive(Debug, PartialEq, serde::Serialize)]
 pub struct ContractInfo<Balance> {
     trie_id: TrieId,
     code_hash: H256,
+    storage_bytes: u32,
     storage_items: u32,
-    storage_items_deposit: Balance,
-    storage_total_deposit: Balance,
+    storage_byte_deposit: Balance,
+    storage_item_deposit: Balance,
+    storage_base_deposit: Balance,
+    immutable_data_len: u32,
 }
 
 impl<Balance> ContractInfo<Balance>
@@ -233,23 +220,39 @@ where
     }
 
     /// Return the number of storage items of the contract.
+    pub fn storage_bytes(&self) -> u32 {
+        self.storage_bytes
+    }
+
+    /// Return the number of storage items of the contract.
     pub fn storage_items(&self) -> u32 {
         self.storage_items
     }
 
     /// Return the storage item deposit of the contract.
-    pub fn storage_items_deposit(&self) -> Balance {
-        self.storage_items_deposit
+    pub fn storage_item_deposit(&self) -> Balance {
+        self.storage_item_deposit
     }
 
     /// Return the storage item deposit of the contract.
-    pub fn storage_total_deposit(&self) -> Balance {
-        self.storage_total_deposit
+    pub fn storage_byte_deposit(&self) -> Balance {
+        self.storage_byte_deposit
+    }
+
+    /// Return the storage item deposit of the contract.
+    pub fn storage_base_deposit(&self) -> Balance {
+        self.storage_base_deposit
+    }
+
+    /// Return the storage item deposit of the contract.
+    pub fn immutable_data_len(&self) -> u32 {
+        self.immutable_data_len
     }
 }
 
 /// A contract's child trie id.
-#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, DecodeAsType)]
+#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
 pub struct TrieId(#[serde(serialize_with = "serialize_as_byte_str")] Vec<u8>);
 
 impl TrieId {
@@ -318,8 +321,7 @@ pub async fn fetch_all_contracts<C: Config>(
     rpc: &LegacyRpcMethods<C>,
 ) -> Result<Vec<H160>> {
     let best_block = get_best_block(rpc).await?;
-    let root_key =
-        subxt::dynamic::storage("Revive", "ContractInfoOf", ()).to_root_bytes();
+    let root_key = subxt::dynamic::storage("Revive", "AccountInfoOf", ()).to_root_bytes();
     let mut keys = client
         .storage()
         .at(best_block)
@@ -346,8 +348,10 @@ struct AccountInfo<Balance> {
 /// A struct used in the storage reads to access account data.
 #[derive(Clone, Debug, DecodeAsType)]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-struct AccountData<Balance> {
-    reserved: Balance,
+pub struct AccountData<Balance> {
+    pub free: Balance,
+    pub reserved: Balance,
+    pub frozen: Balance,
 }
 
 /// A struct representing `Vec`` used in the storage reads.
@@ -355,19 +359,8 @@ struct AccountData<Balance> {
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
 struct BoundedVec<T>(pub ::std::vec::Vec<T>);
 
-/// A struct used in the storage reads to access contract info.
-#[derive(Debug, DecodeAsType)]
-#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-struct ContractInfoOf<Balance> {
-    trie_id: BoundedVec<u8>,
-    code_hash: H256,
-    storage_items: u32,
-    storage_item_deposit: Balance,
-}
-
 #[cfg(test)]
 mod tests {
-    /*
     use super::*;
     use ink_env::DefaultEnvironment;
     use scale::Encode;
@@ -376,12 +369,11 @@ mod tests {
         Path,
     };
     use subxt::{
+        dynamic::DecodedValueThunk,
         metadata::{
             types::Metadata,
             DecodeWithMetadata,
         },
-        utils::AccountId32,
-        PolkadotConfig as DefaultConfig,
     };
 
     // Find the type index in the metadata.
@@ -416,10 +408,7 @@ mod tests {
         mod api_v15 {}
 
         use api_v15::runtime_types::{
-            bounded_collections::{
-                bounded_btree_map::BoundedBTreeMap,
-                bounded_vec::BoundedVec,
-            },
+            bounded_collections::bounded_vec::BoundedVec,
             pallet_revive::storage::ContractInfo as ContractInfoV15,
         };
 
@@ -427,12 +416,9 @@ mod tests {
             .expect("the metadata must be present");
         let metadata =
             Metadata::decode(&mut &*metadata_bytes).expect("the metadata must decode");
-        let contract_info_type_id = get_metadata_type_index(
-            "ContractInfo",
-            "pallet_revive::storage",
-            &metadata,
-        )
-        .expect("the contract info type must be present in the metadata");
+        let contract_info_type_id =
+            get_metadata_type_index("ContractInfo", "pallet_revive::storage", &metadata)
+                .expect("the contract info type must be present in the metadata");
 
         let contract_info_v15 = ContractInfoV15 {
             trie_id: BoundedVec(vec![]),
@@ -442,7 +428,7 @@ mod tests {
             storage_byte_deposit: 1,
             storage_item_deposit: 1,
             storage_base_deposit: 1,
-            delegate_dependencies: BoundedBTreeMap(vec![]),
+            immutable_data_len: 1,
         };
 
         let contract_info_thunk = DecodedValueThunk::decode_with_metadata(
@@ -451,30 +437,23 @@ mod tests {
             &metadata.into(),
         )
         .expect("the contract info must be decoded");
+        let contract_info = contract_info_thunk
+            .as_type::<ContractInfo<<DefaultEnvironment as Environment>::Balance>>()
+            .expect("failed");
 
-        let contract = AccountId32([0u8; 32]);
-        let contract_info_raw =
-            ContractInfoRaw::<DefaultConfig, DefaultEnvironment>::new(
-                contract,
-                contract_info_thunk,
-            )
-            .expect("the conatract info raw must be created");
-        let account_data = AccountData {
-            free: 1,
-            reserved: 10,
-        };
-
-        let contract_info = contract_info_raw.into_contract_info(account_data.clone());
         assert_eq!(
             contract_info,
             ContractInfo {
                 trie_id: contract_info_v15.trie_id.0.into(),
                 code_hash: contract_info_v15.code_hash,
+                storage_bytes: contract_info_v15.storage_bytes,
                 storage_items: contract_info_v15.storage_items,
-                storage_items_deposit: contract_info_v15.storage_item_deposit,
-                storage_total_deposit: account_data.reserved,
+                storage_byte_deposit: contract_info_v15.storage_byte_deposit,
+                storage_item_deposit: contract_info_v15.storage_item_deposit,
+                storage_base_deposit: contract_info_v15.storage_base_deposit,
+                immutable_data_len: contract_info_v15.immutable_data_len,
+                //storage_total_deposit: account_data.reserved,
             }
         );
     }
-    */
 }
