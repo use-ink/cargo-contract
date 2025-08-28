@@ -134,19 +134,11 @@ impl Manifest {
     pub fn new(manifest_path: ManifestPath) -> Result<Manifest> {
         let toml = fs::read_to_string(&manifest_path).context("Loading Cargo.toml")?;
         let toml: value::Table = toml::from_str(&toml)?;
-        let mut manifest = Manifest {
+        let manifest = Manifest {
             path: manifest_path,
             toml,
             metadata_package: false,
         };
-        let profile = manifest.profile_release_table_mut()?;
-        if profile
-            .get("overflow-checks")
-            .and_then(|val| val.as_bool())
-            .unwrap_or(false)
-        {
-            anyhow::bail!("Overflow checks must be disabled. Cargo contract makes sure that no unchecked arithmetic is used.")
-        }
         Ok(manifest)
     }
 
