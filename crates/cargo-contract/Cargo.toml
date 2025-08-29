@@ -46,7 +46,7 @@ ink_env = { workspace = true }
 
 # dependencies for extrinsics (deploying and calling a contract)
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "net"] }
-subxt = { version = "0.42.1" }
+subxt = { version = "0.44.0" }
 hex = "0.4.3"
 
 sp-core = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "c40b36c3a7c208f9a6837b80812473af3d9ba7f7", default-features = false }
