@@ -51,7 +51,7 @@ assert_cmd = "2.0.17"
 regex = "1.11.1"
 predicates = "3.1.3"
 tempfile = "3.16.0"
-tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 subxt-signer = { version = "0.42.1", features = ["subxt", "sr25519"] }
 stdio-override = "0.2.0"
 
