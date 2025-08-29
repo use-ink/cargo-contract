@@ -1759,7 +1759,7 @@ dependencies = [
  "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk.git?rev=c40b36c3a7c208f9a6837b80812473af3d9ba7f7)",
  "stdio-override",
  "subxt",
- "subxt-signer 0.42.1",
+ "subxt-signer 0.44.0",
  "tempfile",
  "tokio",
  "tracing",
@@ -2743,6 +2743,22 @@ dependencies = [
  "scale-info",
  "scale-type-resolver",
  "sp-crypto-hashing 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "frame-decode"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c470df86cf28818dd3cd2fc4667b80dbefe2236c722c3dc1d09e7c6c82d6dfcd"
+dependencies = [
+ "frame-metadata 23.0.0",
+ "parity-scale-codec",
+ "scale-decode",
+ "scale-encode",
+ "scale-info",
+ "scale-type-resolver",
+ "sp-crypto-hashing 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "thiserror 2.0.12",
 ]
 
 [[package]]
@@ -8241,6 +8257,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "subxt-core"
+version = "0.44.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5705c5b420294524e41349bf23c6b11aa474ce731de7317f4153390e1927f702"
+dependencies = [
+ "base58",
+ "blake2",
+ "derive-where",
+ "frame-decode 0.9.0",
+ "frame-metadata 23.0.0",
+ "hashbrown 0.14.5",
+ "hex",
+ "impl-serde",
+ "keccak-hash",
+ "parity-scale-codec",
+ "primitive-types 0.13.1",
+ "scale-bits",
+ "scale-decode",
+ "scale-encode",
+ "scale-info",
+ "scale-value",
+ "serde",
+ "serde_json",
+ "sp-crypto-hashing 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "subxt-metadata 0.44.0",
+ "thiserror 2.0.12",
+ "tracing",
+]
+
+[[package]]
 name = "subxt-lightclient"
 version = "0.42.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8305,6 +8351,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "subxt-metadata"
+version = "0.44.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "01fb7c0bfafad78dda7084c6a2444444744af3bbf7b2502399198b9b4c20eddf"
+dependencies = [
+ "frame-decode 0.9.0",
+ "frame-metadata 23.0.0",
+ "hashbrown 0.14.5",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-crypto-hashing 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "thiserror 2.0.12",
+]
+
+[[package]]
 name = "subxt-rpcs"
 version = "0.42.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8360,9 +8421,9 @@ dependencies = [
 
 [[package]]
 name = "subxt-signer"
-version = "0.42.1"
+version = "0.44.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b58aeda7bebddedbef69ac55ae592fb9eef499927b50d42c43862d1664b5e5b3"
+checksum = "0fb6463f7f46817043de9f20ba11f485ee474378fcdbe4150aa849274523bd1c"
 dependencies = [
  "base64",
  "bip39",
@@ -8381,7 +8442,7 @@ dependencies = [
  "serde_json",
  "sha2 0.10.9",
  "sp-crypto-hashing 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "subxt-core 0.42.1",
+ "subxt-core 0.44.0",
  "thiserror 2.0.12",
  "zeroize",
 ]
