@@ -477,6 +477,7 @@ mod tests {
 
         type ChainExtension = NoChainExtension;
         const MAX_EVENT_TOPICS: usize = 4;
+        const NATIVE_TO_ETH_RATIO: u32 = 100_000_000;
         const BUFFER_SIZE: usize = 1 << 14;
 
         // given
@@ -541,6 +542,7 @@ mod tests {
                         ),
                     ))
                     .max_event_topics(MAX_EVENT_TOPICS)
+                    .native_to_eth_ratio(NATIVE_TO_ETH_RATIO)
                     .static_buffer_size(BUFFER_SIZE)
                     .done(),
             )
