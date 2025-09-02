@@ -38,7 +38,7 @@ url = { version = "2.5.4", features = ["serde"] }
 semver = "1.0"
 jsonschema = "0.32"
 schemars = "0.8.22"
-comfy-table = "7.1.4"
+comfy-table = "7.2.0"
 num-traits = "0.2.19"
 
 ink_metadata = { workspace = true }
