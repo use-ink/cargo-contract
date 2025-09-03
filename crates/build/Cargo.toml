@@ -40,7 +40,7 @@ which = "8.0.0"
 zip = { version = "4.2.0", default-features = false }
 tokio = { version = "1.44.2", features = ["macros", "rt-multi-thread", "net"] }
 tokio-stream = "0.1.17"
-bollard = "0.18.1"
+bollard = "0.19.2"
 crossterm = "0.29.0"
 itertools = "0.14.0"
 alloy-json-abi = "1.3.1"
