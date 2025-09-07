@@ -20,7 +20,6 @@ use anyhow::{
 // todo missing comparison for those. not sure if even exposed somewhere.
 impl Environment for DefaultEnvironment {
     const MAX_EVENT_TOPICS: usize = 4;
-    type ChainExtension = NoChainExtension;
 }
 */
 fn get_node_env_fields(
@@ -472,10 +471,6 @@ mod tests {
         let leaf = LeafLayout::from_key::<u8>(LayoutKey::new(0_u8));
         let layout = Layout::Leaf(leaf);
 
-        #[derive(scale_info::TypeInfo)]
-        pub enum NoChainExtension {}
-
-        type ChainExtension = NoChainExtension;
         const MAX_EVENT_TOPICS: usize = 4;
         const NATIVE_TO_ETH_RATIO: u32 = 100_000_000;
         const BUFFER_SIZE: usize = 1 << 14;
@@ -532,12 +527,6 @@ mod tests {
                     .block_number(TypeSpec::with_name_segs::<BN, _>(
                         ::core::iter::Iterator::map(
                             ::core::iter::IntoIterator::into_iter(["BlockNumber"]),
-                            ::core::convert::AsRef::as_ref,
-                        ),
-                    ))
-                    .chain_extension(TypeSpec::with_name_segs::<ChainExtension, _>(
-                        ::core::iter::Iterator::map(
-                            ::core::iter::IntoIterator::into_iter(["ChainExtension"]),
                             ::core::convert::AsRef::as_ref,
                         ),
                     ))
