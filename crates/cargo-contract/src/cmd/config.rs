@@ -67,7 +67,6 @@ impl Environment for Ecdsachain {
     type Hash = <DefaultEnvironment as Environment>::Hash;
     type Timestamp = <DefaultEnvironment as Environment>::Timestamp;
     type BlockNumber = <DefaultEnvironment as Environment>::BlockNumber;
-    type ChainExtension = <DefaultEnvironment as Environment>::ChainExtension;
     type EventRecord = ();
 }
 
@@ -102,7 +101,6 @@ impl Environment for Substrate {
     type Hash = <DefaultEnvironment as Environment>::Hash;
     type Timestamp = <DefaultEnvironment as Environment>::Timestamp;
     type BlockNumber = <DefaultEnvironment as Environment>::BlockNumber;
-    type ChainExtension = <DefaultEnvironment as Environment>::ChainExtension;
     type EventRecord = ();
 }
 
@@ -134,7 +132,6 @@ impl Environment for Polkadot {
     type Hash = <DefaultEnvironment as Environment>::Hash;
     type Timestamp = <DefaultEnvironment as Environment>::Timestamp;
     type BlockNumber = <DefaultEnvironment as Environment>::BlockNumber;
-    type ChainExtension = <DefaultEnvironment as Environment>::ChainExtension;
     type EventRecord = ();
 }
 
