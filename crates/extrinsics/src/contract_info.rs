@@ -296,10 +296,9 @@ pub async fn fetch_contract_binary<C: Config>(
         .fetch(&pristine_code_address)
         .await?
         .ok_or_else(|| anyhow!("No contract binary was found for code hash {}", hash))?;
-    let pristine_code = pristine_code
-        .as_type::<BoundedVec<u8>>()
-        .map_err(|e| anyhow!("Contract binary could not be parsed: {e}"));
-    pristine_code.map(|v| v.0)
+    pristine_code
+        .as_type::<Vec<u8>>()
+        .map_err(|e| anyhow!("Contract binary could not be parsed 123: {e}"))
 }
 
 /// Parse a contract account address from a storage key. Returns error if a key is
@@ -353,11 +352,6 @@ pub struct AccountData<Balance> {
     pub reserved: Balance,
     pub frozen: Balance,
 }
-
-/// A struct representing `Vec`` used in the storage reads.
-#[derive(Debug, DecodeAsType)]
-#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-struct BoundedVec<T>(pub ::std::vec::Vec<T>);
 
 #[cfg(test)]
 mod tests {
