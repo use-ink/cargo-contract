@@ -19,7 +19,6 @@ use anyhow::{
 /*
 // todo missing comparison for those. not sure if even exposed somewhere.
 impl Environment for DefaultEnvironment {
-    const MAX_EVENT_TOPICS: usize = 4;
 }
 */
 fn get_node_env_fields(
@@ -470,8 +469,6 @@ mod tests {
         // let _ = generate_metadata();
         let leaf = LeafLayout::from_key::<u8>(LayoutKey::new(0_u8));
         let layout = Layout::Leaf(leaf);
-
-        const MAX_EVENT_TOPICS: usize = 4;
         const NATIVE_TO_ETH_RATIO: u32 = 100_000_000;
         const BUFFER_SIZE: usize = 1 << 14;
 
@@ -530,7 +527,6 @@ mod tests {
                             ::core::convert::AsRef::as_ref,
                         ),
                     ))
-                    .max_event_topics(MAX_EVENT_TOPICS)
                     .native_to_eth_ratio(NATIVE_TO_ETH_RATIO)
                     .static_buffer_size(BUFFER_SIZE)
                     .done(),

@@ -59,7 +59,6 @@ impl Config for Ecdsachain {
 }
 
 impl Environment for Ecdsachain {
-    const MAX_EVENT_TOPICS: usize = <DefaultEnvironment as Environment>::MAX_EVENT_TOPICS;
     const NATIVE_TO_ETH_RATIO: u32 =
         <DefaultEnvironment as Environment>::NATIVE_TO_ETH_RATIO;
     type AccountId = <DefaultEnvironment as Environment>::AccountId;
@@ -93,7 +92,6 @@ impl Config for Substrate {
 }
 
 impl Environment for Substrate {
-    const MAX_EVENT_TOPICS: usize = <DefaultEnvironment as Environment>::MAX_EVENT_TOPICS;
     const NATIVE_TO_ETH_RATIO: u32 =
         <DefaultEnvironment as Environment>::NATIVE_TO_ETH_RATIO;
     type AccountId = <DefaultEnvironment as Environment>::AccountId;
@@ -124,7 +122,6 @@ impl Config for Polkadot {
 }
 
 impl Environment for Polkadot {
-    const MAX_EVENT_TOPICS: usize = <DefaultEnvironment as Environment>::MAX_EVENT_TOPICS;
     const NATIVE_TO_ETH_RATIO: u32 =
         <DefaultEnvironment as Environment>::NATIVE_TO_ETH_RATIO;
     type AccountId = <DefaultEnvironment as Environment>::AccountId;
