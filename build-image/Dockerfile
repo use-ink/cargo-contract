@@ -12,13 +12,14 @@ ARG CARGO_CONTRACT_BRANCH
 ARG CARGO_CONTRACT_REV
 # Tag to use in git repository
 ARG CARGO_CONTRACT_TAG
-# gcc package version
-ARG GCC_VERSION=4:12.2.0-3
+# gcc package version (meta-package, points to gcc-13)
+ARG GCC_VERSION=4:14.2.0-1
 # wget package version
-ARG WGET_VERSION=1.21.3-1+deb12u1
-# g++ package version
-ARG G_VERSION=4:12.2.0-3
-ARG MUSL_V=1.2.3-1
+ARG WGET_VERSION=1.25.0-2
+# g++ package version (meta-package, points to g++-13)
+ARG G_VERSION=4:14.2.0-1
+# musl package version
+ARG MUSL_V=1.2.5-3
 # The Rust version used by `ink_linting`.
 # See https://github.com/use-ink/ink/blob/master/linting/rust-toolchain.toml.
 ARG RUST_LINTER_VERSION=nightly-2025-02-20
@@ -95,7 +96,7 @@ ENV DYLINT_DRIVER_PATH=/usr/local/dylint_drivers
 
 # Install required packages for `cargo-contract`
 # libssl-dev and pkg-config is required by cargo-dylint
-RUN apt-get -y update && apt-get -y install gcc=${GCC_VERSION} g++=${G_VERSION} musl-dev=${MUSL_V} libssl-dev pkg-config \
+RUN apt-get -y update && apt-get -y install gcc=${GCC_VERSION} g++=${G_VERSION} musl-tools=${MUSL_V} libssl-dev pkg-config \
     # Install cargo contract from git if the arg is set
     && if [ -n "$CARGO_CONTRACT_GIT" ]; then \
     COMMAND="cargo install --git ${CARGO_CONTRACT_GIT}" ; \
