@@ -1926,7 +1926,7 @@ dependencies = [
  "sp-weights",
  "stdio-override",
  "subxt",
- "subxt-signer 0.42.1",
+ "subxt-signer",
  "tempfile",
  "tokio",
  "tracing",
@@ -4896,7 +4896,7 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "substrate-bn",
- "subxt-signer 0.43.0",
+ "subxt-signer",
 ]
 
 [[package]]
@@ -8093,34 +8093,6 @@ dependencies = [
  "tokio-util",
  "tracing",
  "url",
-]
-
-[[package]]
-name = "subxt-signer"
-version = "0.42.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b58aeda7bebddedbef69ac55ae592fb9eef499927b50d42c43862d1664b5e5b3"
-dependencies = [
- "base64",
- "bip39",
- "cfg-if",
- "crypto_secretbox",
- "hex",
- "hmac 0.12.1",
- "parity-scale-codec",
- "pbkdf2",
- "regex",
- "schnorrkel",
- "scrypt",
- "secp256k1 0.30.0",
- "secrecy 0.10.3",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "sp-crypto-hashing 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "subxt-core 0.42.1",
- "thiserror 2.0.16",
- "zeroize",
 ]
 
 [[package]]
