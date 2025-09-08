@@ -2,7 +2,7 @@ extern crate contract;
 
 use serde::{Deserialize, Serialize};
 
-extern "Rust" {
+unsafe extern "Rust" {
     // Note: The ink! metadata codegen generates an implementation for these functions,
     // which is what we end up linking to here.
     fn __ink_generate_metadata() -> ink::metadata::InkProject;

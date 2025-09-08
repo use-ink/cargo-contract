@@ -2,7 +2,7 @@
 name = "{{name}}"
 version = "0.1.0"
 authors = ["[your_name] <[your_email]>"]
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 ink = { git = "https://github.com/use-ink/ink", branch = "master", version = "6.0.0-alpha.1", default-features = false, features = ["unstable-hostfn"] }
