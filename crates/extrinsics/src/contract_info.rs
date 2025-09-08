@@ -395,18 +395,25 @@ mod tests {
     }
 
     #[test]
-    fn contract_info_v15_decode_works() {
+    fn contract_info_v16_decode_works() {
         // This version of metadata does not include the deposit_account field in
         // ContractInfo
-        #[subxt::subxt(runtime_metadata_path = "src/test_runtime_api/metadata_v15.scale")]
-        mod api_v15 {}
+        #[subxt::subxt(
+            runtime_metadata_path = "src/test_runtime_api/metadata_v16.scale",
+            derive_for_type(
+                path = "pallet_revive::storage::ContractInfo",
+                derive = "scale::Encode",
+                recursive
+            )
+        )]
+        mod api_v16 {}
 
-        use api_v15::runtime_types::{
+        use api_v16::runtime_types::{
             bounded_collections::bounded_vec::BoundedVec,
-            pallet_revive::storage::ContractInfo as ContractInfoV15,
+            pallet_revive::storage::ContractInfo as ContractInfoV16,
         };
 
-        let metadata_bytes = std::fs::read("src/test_runtime_api/metadata_v15.scale")
+        let metadata_bytes = std::fs::read("src/test_runtime_api/metadata_v16.scale")
             .expect("the metadata must be present");
         let metadata =
             Metadata::decode(&mut &*metadata_bytes).expect("the metadata must decode");
@@ -414,7 +421,7 @@ mod tests {
             get_metadata_type_index("ContractInfo", "pallet_revive::storage", &metadata)
                 .expect("the contract info type must be present in the metadata");
 
-        let contract_info_v15 = ContractInfoV15 {
+        let contract_info_v16 = ContractInfoV16 {
             trie_id: BoundedVec(vec![]),
             code_hash: Default::default(),
             storage_bytes: 1,
@@ -426,7 +433,7 @@ mod tests {
         };
 
         let contract_info_thunk = DecodedValueThunk::decode_with_metadata(
-            &mut &*contract_info_v15.encode(),
+            &mut contract_info_v16.encode().as_slice(),
             contract_info_type_id as u32,
             &metadata.into(),
         )
@@ -438,14 +445,14 @@ mod tests {
         assert_eq!(
             contract_info,
             ContractInfo {
-                trie_id: contract_info_v15.trie_id.0.into(),
-                code_hash: contract_info_v15.code_hash,
-                storage_bytes: contract_info_v15.storage_bytes,
-                storage_items: contract_info_v15.storage_items,
-                storage_byte_deposit: contract_info_v15.storage_byte_deposit,
-                storage_item_deposit: contract_info_v15.storage_item_deposit,
-                storage_base_deposit: contract_info_v15.storage_base_deposit,
-                immutable_data_len: contract_info_v15.immutable_data_len,
+                trie_id: contract_info_v16.trie_id.0.into(),
+                code_hash: contract_info_v16.code_hash,
+                storage_bytes: contract_info_v16.storage_bytes,
+                storage_items: contract_info_v16.storage_items,
+                storage_byte_deposit: contract_info_v16.storage_byte_deposit,
+                storage_item_deposit: contract_info_v16.storage_item_deposit,
+                storage_base_deposit: contract_info_v16.storage_base_deposit,
+                immutable_data_len: contract_info_v16.immutable_data_len,
                 //storage_total_deposit: account_data.reserved,
             }
         );
