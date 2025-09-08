@@ -117,7 +117,7 @@ pub fn env_vars(crate_metadata: &CrateMetadata) -> Result<Option<EnvVars<'_>>> {
             .or_else(|_| generate(&crate_metadata.artifact_directory))?;
         if env::var("INK_RUSTC_WRAPPER").is_err() {
             // SAFETY: The `rustc` wrapper is safe to reuse across all threads.
-            env::set_var("INK_RUSTC_WRAPPER", &rustc_wrapper);
+            unsafe { env::set_var("INK_RUSTC_WRAPPER", &rustc_wrapper) };
         }
         return Ok(Some(vec![
             ("RUSTC_WRAPPER", Some(rustc_wrapper)),
