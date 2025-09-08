@@ -27,6 +27,7 @@ pub struct Profile {
     // `None` means use rustc default.
     pub codegen_units: Option<u32>,
     pub panic: Option<PanicStrategy>,
+    pub overflow_checks: Option<bool>,
 }
 
 impl Profile {
@@ -37,6 +38,7 @@ impl Profile {
             lto: Some(Lto::Fat),
             codegen_units: Some(1),
             panic: Some(PanicStrategy::Abort),
+            overflow_checks: Some(true),
         }
     }
 
@@ -73,6 +75,7 @@ impl Profile {
             self.panic.map(PanicStrategy::to_toml_value),
             profile,
         );
+        set_value_if_vacant("overflow-checks", self.overflow_checks, profile);
     }
 }
 
@@ -159,6 +162,7 @@ mod tests {
         expected.insert("lto".into(), value::Value::String("fat".into()));
         expected.insert("codegen-units".into(), value::Value::Integer(1));
         expected.insert("panic".into(), value::Value::String("abort".into()));
+        expected.insert("overflow-checks".into(), value::Value::Boolean(true));
 
         let mut manifest_profile = toml::from_str(manifest_toml).unwrap();
 
@@ -176,12 +180,14 @@ mod tests {
             lto = false
             opt-level = 3
             codegen-units = 256
+            overflow-checks = false
         "#;
         let mut expected = value::Table::new();
         expected.insert("opt-level".into(), value::Value::Integer(3));
         expected.insert("lto".into(), value::Value::Boolean(false));
         expected.insert("codegen-units".into(), value::Value::Integer(256));
         expected.insert("panic".into(), value::Value::String("unwind".into()));
+        expected.insert("overflow-checks".into(), value::Value::Boolean(false));
 
         let mut manifest_profile = toml::from_str(manifest_toml).unwrap();
 
