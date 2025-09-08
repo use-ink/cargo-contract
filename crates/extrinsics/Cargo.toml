@@ -32,15 +32,15 @@ url = { version = "2.5.4", features = ["serde"] }
 rust_decimal = "1.37.2"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "net"] }
 scale-info = "2.11.6"
-subxt = "0.42.1"
+subxt = "0.44.0"
 hex = "0.4.3"
 derivative = "2.2.0"
 
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "c40b36c3a7c208f9a6837b80812473af3d9ba7f7", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "c40b36c3a7c208f9a6837b80812473af3d9ba7f7" }
-sp-weights = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "c40b36c3a7c208f9a6837b80812473af3d9ba7f7", default-features = false }
-pallet-revive = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "c40b36c3a7c208f9a6837b80812473af3d9ba7f7" }
-pallet-revive-uapi = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "c40b36c3a7c208f9a6837b80812473af3d9ba7f7", default-features = false, features = ["unstable-hostfn", "scale"] }
+sp-core = { git = "https://github.com/use-ink/polkadot-sdk.git", rev = "a71ec19a94702ea71767ba5ac97603ea6c6305c1", default-features = false }
+sp-runtime = { git = "https://github.com/use-ink/polkadot-sdk.git", rev = "a71ec19a94702ea71767ba5ac97603ea6c6305c1" }
+sp-weights = { git = "https://github.com/use-ink/polkadot-sdk.git", rev = "a71ec19a94702ea71767ba5ac97603ea6c6305c1", default-features = false }
+pallet-revive = { git = "https://github.com/use-ink/polkadot-sdk.git", rev = "a71ec19a94702ea71767ba5ac97603ea6c6305c1" }
+pallet-revive-uapi = { git = "https://github.com/use-ink/polkadot-sdk.git", rev = "a71ec19a94702ea71767ba5ac97603ea6c6305c1", default-features = false, features = ["unstable-hostfn", "scale"] }
 
 ink_metadata = { workspace = true }
 ink_env = { workspace = true }
@@ -52,7 +52,7 @@ regex = "1.11.1"
 predicates = "3.1.3"
 tempfile = "3.16.0"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
-subxt-signer = { version = "0.42.1", features = ["subxt", "sr25519"] }
+subxt-signer = { version = "0.44.0", features = ["subxt", "sr25519"] }
 stdio-override = "0.2.0"
 
 # todo Remove once the `polkadot-sdk` compilation error

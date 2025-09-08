@@ -60,12 +60,13 @@ impl Config for Ecdsachain {
 
 impl Environment for Ecdsachain {
     const MAX_EVENT_TOPICS: usize = <DefaultEnvironment as Environment>::MAX_EVENT_TOPICS;
+    const NATIVE_TO_ETH_RATIO: u32 =
+        <DefaultEnvironment as Environment>::NATIVE_TO_ETH_RATIO;
     type AccountId = <DefaultEnvironment as Environment>::AccountId;
     type Balance = <DefaultEnvironment as Environment>::Balance;
     type Hash = <DefaultEnvironment as Environment>::Hash;
     type Timestamp = <DefaultEnvironment as Environment>::Timestamp;
     type BlockNumber = <DefaultEnvironment as Environment>::BlockNumber;
-    type ChainExtension = <DefaultEnvironment as Environment>::ChainExtension;
     type EventRecord = ();
 }
 
@@ -93,12 +94,13 @@ impl Config for Substrate {
 
 impl Environment for Substrate {
     const MAX_EVENT_TOPICS: usize = <DefaultEnvironment as Environment>::MAX_EVENT_TOPICS;
+    const NATIVE_TO_ETH_RATIO: u32 =
+        <DefaultEnvironment as Environment>::NATIVE_TO_ETH_RATIO;
     type AccountId = <DefaultEnvironment as Environment>::AccountId;
     type Balance = <DefaultEnvironment as Environment>::Balance;
     type Hash = <DefaultEnvironment as Environment>::Hash;
     type Timestamp = <DefaultEnvironment as Environment>::Timestamp;
     type BlockNumber = <DefaultEnvironment as Environment>::BlockNumber;
-    type ChainExtension = <DefaultEnvironment as Environment>::ChainExtension;
     type EventRecord = ();
 }
 
@@ -123,12 +125,13 @@ impl Config for Polkadot {
 
 impl Environment for Polkadot {
     const MAX_EVENT_TOPICS: usize = <DefaultEnvironment as Environment>::MAX_EVENT_TOPICS;
+    const NATIVE_TO_ETH_RATIO: u32 =
+        <DefaultEnvironment as Environment>::NATIVE_TO_ETH_RATIO;
     type AccountId = <DefaultEnvironment as Environment>::AccountId;
     type Balance = <DefaultEnvironment as Environment>::Balance;
     type Hash = <DefaultEnvironment as Environment>::Hash;
     type Timestamp = <DefaultEnvironment as Environment>::Timestamp;
     type BlockNumber = <DefaultEnvironment as Environment>::BlockNumber;
-    type ChainExtension = <DefaultEnvironment as Environment>::ChainExtension;
     type EventRecord = ();
 }
 
