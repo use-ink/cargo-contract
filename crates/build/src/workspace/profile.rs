@@ -57,11 +57,10 @@ impl Profile {
         ) where
             T: Into<value::Value>,
         {
-            if let Some(value) = value {
-                if !profile.contains_key(key) {
+            if let Some(value) = value
+                && !profile.contains_key(key) {
                     profile.insert(key.into(), value.into());
                 }
-            }
         }
         set_value_if_vacant(
             "opt-level",

@@ -209,15 +209,14 @@ impl InstantiateCommand {
                 }
             }
         } else {
-            if let Some(chain) = chain.production() {
-                if !instantiate_exec
+            if let Some(chain) = chain.production()
+                && !instantiate_exec
                     .opts()
                     .contract_artifacts()?
                     .is_verifiable()
                 {
                     prompt_confirm_unverifiable_upload(&chain.to_string())?
                 }
-            }
             tracing::debug!("instantiate data {:?}", instantiate_exec.args().data());
             let (gas_limit, storage_deposit_limit) =
                 pre_submit_dry_run_gas_estimate_instantiate(
