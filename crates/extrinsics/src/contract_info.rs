@@ -298,7 +298,7 @@ pub async fn fetch_contract_binary<C: Config>(
         .ok_or_else(|| anyhow!("No contract binary was found for code hash {}", hash))?;
     pristine_code
         .as_type::<Vec<u8>>()
-        .map_err(|e| anyhow!("Contract binary could not be parsed 123: {e}"))
+        .map_err(|e| anyhow!("Contract binary could not be parsed: {e}"))
 }
 
 /// Parse a contract account address from a storage key. Returns error if a key is
