@@ -77,42 +77,52 @@ impl ContractArtifacts {
     /// possible.
     fn from_artifact_path(path: &Path) -> Result<Self> {
         tracing::debug!("Loading contracts artifacts from `{}`", path.display());
-        let (metadata_path, metadata, code) =
-            match path.extension().and_then(|ext| ext.to_str()) {
-                Some("contract") | Some("json") => {
-                    let metadata = ContractMetadata::load(path)?;
-                    let code = metadata.clone().source.contract_binary.map(|binary| ContractBinary(binary.0));
-                    (PathBuf::from(path), Some(metadata), code)
+        let (metadata_path, metadata, code) = match path
+            .extension()
+            .and_then(|ext| ext.to_str())
+        {
+            Some("contract") | Some("json") => {
+                let metadata = ContractMetadata::load(path)?;
+                let code = metadata
+                    .clone()
+                    .source
+                    .contract_binary
+                    .map(|binary| ContractBinary(binary.0));
+                (PathBuf::from(path), Some(metadata), code)
+            }
+            Some("polkavm") => {
+                let file_name = path
+                    .file_stem()
+                    .context("PolkaVM bundle file has unreadable name")?
+                    .to_str()
+                    .context("Error parsing filename string")?;
+                let code = Some(ContractBinary(std::fs::read(path)?));
+                let dir = path.parent().map_or_else(PathBuf::new, PathBuf::from);
+                let metadata_path = dir.join(format!("{file_name}.json"));
+                if !metadata_path.exists() {
+                    (metadata_path, None, code)
+                } else {
+                    let metadata = ContractMetadata::load(&metadata_path)?;
+                    (metadata_path, Some(metadata), code)
                 }
-                Some("polkavm") => {
-                    let file_name = path.file_stem()
-                        .context("PolkaVM bundle file has unreadable name")?
-                        .to_str()
-                        .context("Error parsing filename string")?;
-                    let code = Some(ContractBinary(std::fs::read(path)?));
-                    let dir = path.parent().map_or_else(PathBuf::new, PathBuf::from);
-                    let metadata_path = dir.join(format!("{file_name}.json"));
-                    if !metadata_path.exists() {
-                        (metadata_path, None, code)
-                    } else {
-                        let metadata = ContractMetadata::load(&metadata_path)?;
-                        (metadata_path, Some(metadata), code)
-                    }
-                }
-                Some(ext) => anyhow::bail!(
+            }
+            Some(ext) => {
+                anyhow::bail!(
                     "Invalid artifact extension {ext}, expected `.contract`, `.json` or `.polkavm`"
-                ),
-                None => {
-                    anyhow::bail!(
-                        "Artifact path has no extension, expected `.contract`, `.json`, or `.polkavm`"
-                    )
-                }
-            };
+                )
+            }
+            None => {
+                anyhow::bail!(
+                    "Artifact path has no extension, expected `.contract`, `.json`, or `.polkavm`"
+                )
+            }
+        };
 
         if let Some(contract_metadata) = metadata.as_ref()
-            && let Err(e) = contract_metadata.check_ink_compatibility() {
-                eprintln!("{} {}", "warning:".yellow().bold(), e.to_string().bold());
-            }
+            && let Err(e) = contract_metadata.check_ink_compatibility()
+        {
+            eprintln!("{} {}", "warning:".yellow().bold(), e.to_string().bold());
+        }
         Ok(Self {
             artifacts_path: path.into(),
             metadata_path,

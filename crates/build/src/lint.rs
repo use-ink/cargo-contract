@@ -22,13 +22,13 @@ use std::{
 };
 
 use crate::{
+    CrateMetadata,
+    Verbosity,
+    Workspace,
     execute_cargo,
     onchain_cargo_options,
     util,
     verbose_eprintln,
-    CrateMetadata,
-    Verbosity,
-    Workspace,
 };
 
 /// Toolchain used to build ink_linting:
@@ -216,11 +216,13 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     let cargo = "cargo";
 
     if !execute_cmd(Command::new(cargo).arg("dylint").arg("--version")) {
-        anyhow::bail!("cargo-dylint was not found!\n\
+        anyhow::bail!(
+            "cargo-dylint was not found!\n\
             Make sure it is installed and the binary is in your PATH environment.\n\n\
             You can install it by executing `cargo install cargo-dylint`."
-            .to_string()
-            .bright_yellow());
+                .to_string()
+                .bright_yellow()
+        );
     }
 
     // On windows we cannot just run the linker with --version as there is no command
@@ -231,11 +233,13 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     #[cfg(not(windows))]
     let dylint_link_found = execute_cmd(Command::new("dylint-link").arg("--version"));
     if !dylint_link_found {
-        anyhow::bail!("dylint-link was not found!\n\
+        anyhow::bail!(
+            "dylint-link was not found!\n\
             Make sure it is installed and the binary is in your PATH environment.\n\n\
             You can install it by executing `cargo install dylint-link`."
-            .to_string()
-            .bright_yellow());
+                .to_string()
+                .bright_yellow()
+        );
     }
 
     Ok(())

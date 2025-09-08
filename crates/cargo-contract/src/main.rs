@@ -38,9 +38,9 @@ use self::cmd::{
     VerifySchemaCommand,
 };
 use anyhow::{
-    anyhow,
     Error,
     Result,
+    anyhow,
 };
 use clap::{
     Args,
@@ -50,9 +50,9 @@ use clap::{
 use cmd::encode::EncodeCommand;
 use colored::Colorize;
 use contract_build::{
-    util::DEFAULT_KEY_COL_WIDTH,
     Abi,
     OutputType,
+    util::DEFAULT_KEY_COL_WIDTH,
 };
 use contract_extrinsics::InstantiateExec;
 use sp_weights::Weight;

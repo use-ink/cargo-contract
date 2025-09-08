@@ -17,11 +17,11 @@
 use std::path::PathBuf;
 
 use contract_build::{
-    util,
     CrateMetadata,
     Features,
     ManifestPath,
     VerbosityFlags,
+    util,
 };
 
 /// Execute all unit and integration tests and build examples.

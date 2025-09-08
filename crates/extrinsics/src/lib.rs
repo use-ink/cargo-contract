@@ -52,18 +52,18 @@ pub use call::{
 pub use contract_artifacts::ContractArtifacts;
 use contract_build::{
     CrateMetadata,
-    Verbosity,
     DEFAULT_KEY_COL_WIDTH,
+    Verbosity,
 };
 pub use contract_info::{
+    AccountData,
+    ContractInfo,
+    TrieId,
     fetch_all_contracts,
     fetch_contract_binary,
     fetch_contract_info,
     get_account_data,
     resolve_h160,
-    AccountData,
-    ContractInfo,
-    TrieId,
 };
 use contract_metadata::ContractMetadata;
 pub use contract_storage::{
@@ -89,13 +89,13 @@ pub use extrinsic_opts::{
     ExtrinsicOptsBuilder,
 };
 pub use instantiate::{
-    contract_address,
     Code,
     InstantiateArgs,
     InstantiateCommandBuilder,
     InstantiateDryRunResult,
     InstantiateExec,
     InstantiateExecResult,
+    contract_address,
 };
 pub use map_account::{
     MapAccountCommandBuilder,
@@ -112,10 +112,12 @@ use scale::{
     Encode,
 };
 use sp_core::{
-    keccak_256,
     H160,
+    keccak_256,
 };
 use subxt::{
+    Config,
+    OnlineClient,
     backend::legacy::LegacyRpcMethods,
     blocks,
     config::{
@@ -126,8 +128,6 @@ use subxt::{
     },
     ext::subxt_rpcs::methods::legacy::DryRunResultBytes,
     tx,
-    Config,
-    OnlineClient,
 };
 pub use upload::{
     UploadCommandBuilder,

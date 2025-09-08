@@ -16,8 +16,8 @@
 
 use super::get_best_block;
 use anyhow::{
-    anyhow,
     Result,
+    anyhow,
 };
 use contract_metadata::byte_str::serialize_as_byte_str;
 use std::fmt::{
@@ -30,6 +30,8 @@ use pallet_revive::evm::H256;
 use scale::Decode;
 use std::option::Option;
 use subxt::{
+    Config,
+    OnlineClient,
     backend::legacy::LegacyRpcMethods,
     config::HashFor,
     ext::{
@@ -41,8 +43,6 @@ use subxt::{
     },
     storage::dynamic,
     utils::H160,
-    Config,
-    OnlineClient,
 };
 
 /// Return the account data for an account ID.
@@ -101,7 +101,11 @@ where
                 account_id
             }
             let fallback = to_fallback_account_id(addr);
-            tracing::debug!("No address suffix was found in the node for H160 address {:?}, using fallback {:?}", addr, fallback);
+            tracing::debug!(
+                "No address suffix was found in the node for H160 address {:?}, using fallback {:?}",
+                addr,
+                fallback
+            );
             let account_id =
                 <C as Config>::AccountId::decode(&mut &fallback[..]).unwrap();
             Ok(account_id)
@@ -365,8 +369,8 @@ mod tests {
     use subxt::{
         dynamic::DecodedValueThunk,
         metadata::{
-            types::Metadata,
             DecodeWithMetadata,
+            types::Metadata,
         },
     };
 

@@ -40,6 +40,7 @@ use std::{
 };
 use subxt::{
     self,
+    Config,
     blocks::ExtrinsicEvents,
     config::HashFor,
     events::StaticEvent,
@@ -54,7 +55,6 @@ use subxt::{
         H160,
         H256,
     },
-    Config,
 };
 
 /// A custom event emitted by the contract.
@@ -238,13 +238,14 @@ impl DisplayEvents {
                     let mut value: String = field.value.to_string();
                     if (field.type_name == Some("T::Balance".to_string())
                         || field.type_name == Some("BalanceOf<T>".to_string()))
-                        && let Value::UInt(balance) = field.value {
-                            value = BalanceVariant::<E::Balance>::from(
-                                balance,
-                                Some(token_metadata),
-                            )?
-                            .to_string();
-                        }
+                        && let Value::UInt(balance) = field.value
+                    {
+                        value = BalanceVariant::<E::Balance>::from(
+                            balance,
+                            Some(token_metadata),
+                        )?
+                        .to_string();
+                    }
                     if field.type_name == Some("H160".to_string()) {
                         // Value is in the format `H160([bytes])`.
                         // Extract the byte array between the brackets and convert it to a

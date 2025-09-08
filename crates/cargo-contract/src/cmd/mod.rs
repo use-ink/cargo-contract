@@ -61,25 +61,25 @@ pub(crate) use self::{
 };
 
 use crate::{
-    anyhow,
     PathBuf,
     Weight,
+    anyhow,
 };
 use anyhow::Result;
 use colored::Colorize;
 use contract_build::{
-    name_value_println,
+    DEFAULT_KEY_COL_WIDTH,
     Verbosity,
     VerbosityFlags,
-    DEFAULT_KEY_COL_WIDTH,
+    name_value_println,
 };
 pub(crate) use contract_extrinsics::ErrorVariant;
 use contract_extrinsics::{
-    pallet_revive_primitives::ContractResult,
     BalanceVariant,
     MapAccountCommandBuilder,
     MapAccountExec,
     TokenMetadata,
+    pallet_revive_primitives::ContractResult,
 };
 
 use crate::cmd::config::SignerConfig;
@@ -230,9 +230,9 @@ where
 pub fn display_dry_run_result_warning(command: &str) {
     println!("Your {} call {} been executed.", command, "has not".bold());
     println!(
-            "To submit the transaction and execute the call on chain, add {} flag to the command.",
-            "-x/--execute".bold()
-        );
+        "To submit the transaction and execute the call on chain, add {} flag to the command.",
+        "-x/--execute".bold()
+    );
 }
 
 /// Prompt the user to confirm transaction submission.
@@ -475,39 +475,47 @@ pub fn prompt_confirm_unverifiable_upload(chain: &str) -> Result<()> {
 mod tests {
     use super::*;
     use subxt::{
-        config::HashFor,
         SubstrateConfig,
+        config::HashFor,
     };
 
     #[test]
     fn parse_code_hash_works() {
         // with 0x prefix
-        assert!(parse_code_hash::<HashFor<SubstrateConfig>>(
-            "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
-        )
-        .is_ok());
+        assert!(
+            parse_code_hash::<HashFor<SubstrateConfig>>(
+                "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+            )
+            .is_ok()
+        );
         // without 0x prefix
-        assert!(parse_code_hash::<HashFor<SubstrateConfig>>(
-            "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+        assert!(
+            parse_code_hash::<HashFor<SubstrateConfig>>(
+                "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+            )
+            .is_ok()
         )
-        .is_ok())
     }
 
     #[test]
     fn parse_incorrect_len_code_hash_fails() {
         // with len not equal to 32
-        assert!(parse_code_hash::<HashFor<SubstrateConfig>>(
-            "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da2"
+        assert!(
+            parse_code_hash::<HashFor<SubstrateConfig>>(
+                "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da2"
+            )
+            .is_err()
         )
-        .is_err())
     }
 
     #[test]
     fn parse_bad_format_code_hash_fails() {
         // with bad format
-        assert!(parse_code_hash::<HashFor<SubstrateConfig>>(
-            "x43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+        assert!(
+            parse_code_hash::<HashFor<SubstrateConfig>>(
+                "x43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+            )
+            .is_err()
         )
-        .is_err())
     }
 }

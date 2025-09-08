@@ -15,8 +15,6 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    project_path,
-    util::tests::TestContractManifest,
     Abi,
     BuildArtifacts,
     BuildMode,
@@ -28,6 +26,8 @@ use crate::{
     MetadataArtifacts,
     OutputType,
     SolidityMetadataArtifacts,
+    project_path,
+    util::tests::TestContractManifest,
 };
 use anyhow::Result;
 use contract_metadata::*;
@@ -260,7 +260,10 @@ fn building_contract_with_build_rs_must_work(manifest_path: &ManifestPath) -> Re
     let path = manifest_path.directory().expect("dir must exist");
     let build_rs_path = path.join(Path::new("build.rs"));
 
-    fs::write(build_rs_path, "#![cfg_attr(dylint_lib = \"ink_linting_mandatory\", allow(no_main))]\n\nfn main() {}")?;
+    fs::write(
+        build_rs_path,
+        "#![cfg_attr(dylint_lib = \"ink_linting_mandatory\", allow(no_main))]\n\nfn main() {}",
+    )?;
 
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
@@ -697,7 +700,10 @@ fn unchanged_contract_skips_optimization_and_metadata_steps(
         metadata_modified1, metadata_modified2,
         "Subsequent build of unchanged contract should not perform metadata generation"
     );
-    assert_eq!(contract_bundle_modified1, contract_bundle_modified2, "Subsequent build of unchanged contract should not perform contract bundle generation");
+    assert_eq!(
+        contract_bundle_modified1, contract_bundle_modified2,
+        "Subsequent build of unchanged contract should not perform contract bundle generation"
+    );
 
     Ok(())
 }

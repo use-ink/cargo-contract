@@ -41,10 +41,10 @@ use anyhow::{
 };
 
 use crate::{
-    util,
-    util::EnvVars,
     CrateMetadata,
     Verbosity,
+    util,
+    util::EnvVars,
 };
 
 /// Generates a `rustc` wrapper executable and returns its path.

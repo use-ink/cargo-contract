@@ -18,8 +18,8 @@
 #![deny(unused_crate_dependencies)]
 
 use contract_metadata::{
-    compatibility::check_contract_ink_compatibility,
     ContractMetadata,
+    compatibility::check_contract_ink_compatibility,
 };
 pub use lint::lint;
 use which as _;
@@ -83,14 +83,14 @@ use std::{
 };
 
 use anyhow::{
-    bail,
     Context,
     Result,
+    bail,
 };
 use colored::Colorize;
 pub use docker::{
-    docker_build,
     ImageVariant,
+    docker_build,
 };
 use regex::Regex;
 use semver::Version;
@@ -290,13 +290,17 @@ impl fmt::Display for Abi {
 impl Abi {
     /// Returns the `rustc` `cfg` flag for the ABI.
     pub fn rustflag(&self) -> String {
-        format!("--cfg ink_abi=\"{self}\" --check-cfg cfg(ink_abi,values(\"ink\",\"sol\",\"all\"))")
+        format!(
+            "--cfg ink_abi=\"{self}\" --check-cfg cfg(ink_abi,values(\"ink\",\"sol\",\"all\"))"
+        )
     }
 
     /// Returns the "encoded" `rustc` `cfg` flag for the ABI
     /// (i.e. as expected by `CARGO_ENCODED_RUSTFLAGS`).
     pub fn cargo_encoded_rustflag(&self) -> String {
-        format!("--cfg\x1fink_abi=\"{self}\"\x1f--check-cfg\x1fcfg(ink_abi,values(\"ink\",\"sol\",\"all\"))")
+        format!(
+            "--cfg\x1fink_abi=\"{self}\"\x1f--check-cfg\x1fcfg(ink_abi,values(\"ink\",\"sol\",\"all\"))"
+        )
     }
 
     /// Returns the default metadata spec for the ABI.
@@ -885,8 +889,8 @@ fn h256_hash(code: &[u8]) -> [u8; 32] {
 /// Returns the blake2 hash of the given bytes.
 fn blake2_hash(code: &[u8]) -> [u8; 32] {
     use blake2::digest::{
-        consts::U32,
         Digest as _,
+        consts::U32,
     };
     let mut blake2 = blake2::Blake2b::<U32>::new();
     blake2.update(code);
@@ -909,8 +913,8 @@ pub fn project_path(path: PathBuf) -> PathBuf {
 mod unit_tests {
     use super::*;
     use crate::{
-        util::tests::with_tmp_dir,
         Verbosity,
+        util::tests::with_tmp_dir,
     };
     use semver::Version;
 

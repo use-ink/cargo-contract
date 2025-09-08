@@ -312,10 +312,10 @@ mod tests {
         package_abi,
     };
     use crate::{
-        new_contract_project,
-        util::tests::with_tmp_dir,
         Abi,
         ManifestPath,
+        new_contract_project,
+        util::tests::with_tmp_dir,
     };
 
     #[test]

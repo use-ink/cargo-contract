@@ -20,8 +20,8 @@ use anyhow::{
 };
 
 use super::{
-    metadata,
     Profile,
+    metadata,
 };
 use crate::CrateMetadata;
 
@@ -50,9 +50,10 @@ impl ManifestPath {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
         let manifest = path.as_ref();
         if let Some(file_name) = manifest.file_name()
-            && file_name != MANIFEST_FILE {
-                anyhow::bail!("Manifest file must be a Cargo.toml")
-            }
+            && file_name != MANIFEST_FILE
+        {
+            anyhow::bail!("Manifest file must be a Cargo.toml")
+        }
         Ok(ManifestPath {
             path: manifest.into(),
         })
@@ -560,12 +561,13 @@ impl PathRewrite {
                 };
 
                 if let Some(dependency) = value.as_table_mut()
-                    && let Some(dep_path) = dependency.get_mut("path") {
-                        self.to_absolute_path(
-                            format!("dependency {package_name}"),
-                            dep_path,
-                        )?;
-                    }
+                    && let Some(dep_path) = dependency.get_mut("path")
+                {
+                    self.to_absolute_path(
+                        format!("dependency {package_name}"),
+                        dep_path,
+                    )?;
+                }
             }
         }
         Ok(())
@@ -626,17 +628,18 @@ fn merge_workspace_with_crate_dependencies(
                 // If it's an array we merge the values,
                 // otherwise we keep the crate value.
                 if let toml::Value::Array(value) = value
-                    && let toml::Value::Array(config) = config {
-                        config.extend(value.clone());
+                    && let toml::Value::Array(config) = config
+                {
+                    config.extend(value.clone());
 
-                        let mut new_config = Vec::new();
-                        for v in config.iter() {
-                            if !new_config.contains(v) {
-                                new_config.push(v.clone());
-                            }
+                    let mut new_config = Vec::new();
+                    for v in config.iter() {
+                        if !new_config.contains(v) {
+                            new_config.push(v.clone());
                         }
-                        *config = new_config;
                     }
+                    *config = new_config;
+                }
             } else {
                 dependency.insert(key.clone(), value.clone());
             }

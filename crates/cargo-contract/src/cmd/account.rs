@@ -15,13 +15,13 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    CLIChainOpts,
     config::SignerConfig,
     parse_addr,
-    CLIChainOpts,
 };
 use crate::{
-    call_with_config,
     ErrorVariant,
+    call_with_config,
 };
 use anyhow::Result;
 use contract_extrinsics::{
@@ -38,6 +38,8 @@ use std::{
     str::FromStr,
 };
 use subxt::{
+    Config,
+    OnlineClient,
     backend::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
@@ -47,8 +49,6 @@ use subxt::{
         codec::Decode,
         scale_decode::IntoVisitor,
     },
-    Config,
-    OnlineClient,
 };
 
 #[derive(Debug, clap::Args)]

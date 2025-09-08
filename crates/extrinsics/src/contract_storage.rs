@@ -15,14 +15,14 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    fetch_contract_info,
-    url_to_string,
     ContractInfo,
     TrieId,
+    fetch_contract_info,
+    url_to_string,
 };
 use anyhow::{
-    anyhow,
     Result,
+    anyhow,
 };
 use contract_transcode::{
     ContractMessageTranscoder,
@@ -39,8 +39,8 @@ use scale::{
     Encode,
 };
 use scale_info::{
-    form::PortableForm,
     Type,
+    form::PortableForm,
 };
 use serde::{
     Serialize,
@@ -60,10 +60,12 @@ use std::{
     marker::PhantomData,
 };
 use subxt::{
+    Config,
+    OnlineClient,
     backend::{
         legacy::{
-            rpc_methods::Bytes,
             LegacyRpcMethods,
+            rpc_methods::Bytes,
         },
         rpc::RpcClient,
     },
@@ -73,8 +75,6 @@ use subxt::{
         subxt_rpcs::client::rpc_params,
     },
     utils::H160,
-    Config,
-    OnlineClient,
 };
 
 pub struct ContractStorage<C: Config, E: Environment> {

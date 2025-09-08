@@ -17,22 +17,22 @@
 use crate::call_with_config;
 
 use super::{
+    CLIChainOpts,
     basic_display_format_extended_contract_info,
     display_all_contracts,
     parse_addr,
-    CLIChainOpts,
 };
 use anyhow::Result;
 use contract_analyze::determine_language;
 use contract_extrinsics::{
+    ContractInfo,
+    ErrorVariant,
+    TrieId,
     fetch_all_contracts,
     fetch_contract_binary,
     fetch_contract_info,
     resolve_h160,
     url_to_string,
-    ContractInfo,
-    ErrorVariant,
-    TrieId,
 };
 use ink_env::Environment;
 use primitive_types::H256;
@@ -46,6 +46,8 @@ use std::{
     str::FromStr,
 };
 use subxt::{
+    Config,
+    OnlineClient,
     backend::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
@@ -55,8 +57,6 @@ use subxt::{
         codec::Decode,
         scale_decode::IntoVisitor,
     },
-    Config,
-    OnlineClient,
 };
 
 #[derive(Debug, clap::Args)]

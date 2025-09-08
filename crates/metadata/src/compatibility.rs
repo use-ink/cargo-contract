@@ -17,9 +17,9 @@
 use std::collections::HashMap;
 
 use anyhow::{
+    Result,
     anyhow,
     bail,
-    Result,
 };
 use semver::{
     Version,

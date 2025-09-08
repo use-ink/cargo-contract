@@ -15,8 +15,8 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    call_with_config,
     ErrorVariant,
+    call_with_config,
 };
 
 use contract_build::util::DEFAULT_KEY_COL_WIDTH;
@@ -31,6 +31,8 @@ use std::{
 };
 
 use super::{
+    CLIExtrinsicOpts,
+    MAX_KEY_COL_WIDTH,
     config::SignerConfig,
     display_contract_exec_result,
     display_dry_run_result_warning,
@@ -40,29 +42,28 @@ use super::{
     print_dry_running_status,
     print_gas_required_success,
     prompt_confirm_tx,
-    CLIExtrinsicOpts,
-    MAX_KEY_COL_WIDTH,
 };
 use anyhow::{
-    anyhow,
     Context,
     Result,
+    anyhow,
 };
 use contract_build::name_value_println;
 use contract_extrinsics::{
-    fetch_contract_info,
-    pallet_revive_primitives::StorageDeposit,
     CallCommandBuilder,
     CallExec,
     DisplayEvents,
     ExtrinsicOptsBuilder,
     TokenMetadata,
+    fetch_contract_info,
+    pallet_revive_primitives::StorageDeposit,
 };
 use contract_transcode::Value;
 use num_traits::Zero;
 use sp_core::Decode;
 use sp_weights::Weight;
 use subxt::{
+    Config,
     config::{
         DefaultExtrinsicParams,
         ExtrinsicParams,
@@ -72,7 +73,6 @@ use subxt::{
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
     },
-    Config,
 };
 
 #[derive(Debug, clap::Args)]
@@ -307,19 +307,21 @@ where
 {
     if skip_dry_run {
         let weight = match (call_exec.gas_limit(), call_exec.proof_size()) {
-            (Some(ref_time), Some(proof_size)) => Ok(Weight::from_parts(ref_time, proof_size)),
+            (Some(ref_time), Some(proof_size)) => {
+                Ok(Weight::from_parts(ref_time, proof_size))
+            }
             _ => {
                 Err(anyhow!(
-                "Weight args `--gas` and `--proof-size` required if `--skip-dry-run` specified"
-            ))
+                    "Weight args `--gas` and `--proof-size` required if `--skip-dry-run` specified"
+                ))
             }
         }?;
         let storage_deposit_limit = match call_exec.opts().storage_deposit_limit() {
             Some(limit) => Ok(limit),
             _ => {
                 Err(anyhow!(
-                        "Storage deposit limit arg `--storage-deposit-limit` required if `--skip-dry-run` specified"
-                    ))
+                    "Storage deposit limit arg `--storage-deposit-limit` required if `--skip-dry-run` specified"
+                ))
             }
         }?;
         return Ok((weight, storage_deposit_limit));
@@ -361,7 +363,9 @@ where
                 name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
                 display_contract_exec_result::<_, MAX_KEY_COL_WIDTH, _>(&call_result)?;
 
-                Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
+                Err(anyhow!(
+                    "Pre-submission dry-run failed. Use --skip-dry-run to skip this step."
+                ))
             }
         }
     }
