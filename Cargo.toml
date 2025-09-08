@@ -1,6 +1,9 @@
 [workspace]
-resolver = "2"
+resolver = "3"
 members = ["crates/*"]
+
+[workspace.package]
+rust-version = "1.88"
 
 [workspace.dependencies]
 ink_metadata = { git = "https://github.com/use-ink/ink", branch = "master", version = "6.0.0-alpha.1", default-features = false, features = ["std", "derive"] }
