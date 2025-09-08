@@ -13,15 +13,15 @@ ARG CARGO_CONTRACT_REV
 # Tag to use in git repository
 ARG CARGO_CONTRACT_TAG
 # gcc package version
-ARG GCC_VERSION=4:12.2.0-3
+ARG GCC_VERSION=4:13.3.0-16
 # wget package version
-ARG WGET_VERSION=1.21.3-1+deb12u1
+ARG WGET_VERSION=1.25.0-2
 # g++ package version
 ARG G_VERSION=4:12.2.0-3
 ARG MUSL_V=1.2.3-1
 # The Rust version used by `ink_linting`.
 # See https://github.com/use-ink/ink/blob/master/linting/rust-toolchain.toml.
-ARG RUST_LINTER_VERSION=nightly-2025-02-20
+ARG RUST_LINTER_VERSION=nightly-2025-05-14
 ARG TARGETARCH
 
 # Metadata
