@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - Removed chain extension functionality ‒ [2120](https://github.com/use-ink/cargo-contract/pull/2120)
+- Remove `MAX_EVENT_TOPICS` from `Environment` implementations - [#2122](https://github.com/use-ink/cargo-contract/pull/2122)
 
 ## [6.0.0-alpha.1]
 
