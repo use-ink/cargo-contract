@@ -44,6 +44,13 @@ use serde::{
 use url::Url;
 
 use crate::{
+    BuildMode,
+    Features,
+    Lto,
+    Network,
+    Profile,
+    UnstableFlags,
+    Verbosity,
     code_hash,
     crate_metadata::CrateMetadata,
     solidity_metadata::{
@@ -57,13 +64,6 @@ use crate::{
         ManifestPath,
         Workspace,
     },
-    BuildMode,
-    Features,
-    Lto,
-    Network,
-    Profile,
-    UnstableFlags,
-    Verbosity,
 };
 
 /// Artifacts resulting from metadata generation.

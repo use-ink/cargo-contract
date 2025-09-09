@@ -75,10 +75,10 @@ use anyhow::{
 };
 use semver::Version;
 use serde::{
-    de,
     Deserialize,
     Serialize,
     Serializer,
+    de,
 };
 use serde_json::{
     Map,

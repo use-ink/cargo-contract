@@ -2,8 +2,8 @@
 name = "contract-extrinsics"
 version = "6.0.0-alpha.1"
 authors = ["Use Ink <ink@use.ink>"]
-edition = "2021"
-rust-version = "1.70"
+edition = "2024"
+rust-version.workspace = true
 
 license = "Apache-2.0"
 readme = "README.md"

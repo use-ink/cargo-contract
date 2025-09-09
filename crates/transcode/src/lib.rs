@@ -138,11 +138,11 @@ use scale::{
     Input,
 };
 use scale_info::{
+    Field,
     form::{
         Form,
         PortableForm,
     },
-    Field,
 };
 use std::{
     cmp::Ordering,
@@ -219,9 +219,9 @@ impl ContractMessageTranscoder {
             (None, Some(m)) => (m.selector(), m.args()),
             (Some(_), Some(_)) => {
                 return Err(anyhow::anyhow!(
-                "Invalid metadata: both a constructor and message found with name '{}'",
-                name
-            ))
+                    "Invalid metadata: both a constructor and message found with name '{}'",
+                    name
+                ))
             }
             (None, None) => {
                 let constructors = self.constructors().map(|c| c.label());
@@ -440,9 +440,11 @@ impl ContractMessageTranscoder {
 fn assert_not_shortened_hex(arg: &str) {
     let re = Regex::new(r"^0x[a-fA-F0-9]+…[a-fA-F0-9]+$").unwrap();
     if re.is_match(arg) {
-        panic!("Error: You are attempting to transcode a shortened hex value: `{arg:?}`.\n\
+        panic!(
+            "Error: You are attempting to transcode a shortened hex value: `{arg:?}`.\n\
                 This would result in a different return value than the un-shortened hex value.\n\
-                You likely called `to_string()` on e.g. `H160` and got a shortened output.");
+                You likely called `to_string()` on e.g. `H160` and got a shortened output."
+        );
     }
 }
 
@@ -630,7 +632,7 @@ mod tests {
     }
 
     fn generate_metadata() -> InkProject {
-        extern "Rust" {
+        unsafe extern "Rust" {
             fn __ink_generate_metadata() -> InkProject;
         }
 
@@ -922,7 +924,12 @@ mod tests {
         if let Value::Map(ref map) = decoded {
             let name_field = &map[&Value::String("name".into())];
             if let Value::Hex(hex) = name_field {
-                assert_eq!(&Hex::from_str("0x3428ebe146f5b82415da82724bcf75f053768738dcac5f83ab7d82a70a0ff2de")?, hex);
+                assert_eq!(
+                    &Hex::from_str(
+                        "0x3428ebe146f5b82415da82724bcf75f053768738dcac5f83ab7d82a70a0ff2de"
+                    )?,
+                    hex
+                );
                 Ok(())
             } else {
                 Err(anyhow::anyhow!(

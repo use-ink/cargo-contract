@@ -16,10 +16,10 @@
 
 use anyhow::Result;
 use contract_build::{
-    lint,
     CrateMetadata,
     ManifestPath,
     VerbosityFlags,
+    lint,
 };
 use std::path::PathBuf;
 

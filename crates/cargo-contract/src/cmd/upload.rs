@@ -15,8 +15,8 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    call_with_config,
     ErrorVariant,
+    call_with_config,
 };
 use std::{
     fmt::{
@@ -27,11 +27,11 @@ use std::{
 };
 
 use super::{
+    CLIExtrinsicOpts,
     config::SignerConfig,
     display_dry_run_result_warning,
     parse_balance,
     prompt_confirm_unverifiable_upload,
-    CLIExtrinsicOpts,
 };
 use anyhow::Result;
 use contract_build::name_value_println;
@@ -45,6 +45,7 @@ use contract_extrinsics::{
 use ink_env::Environment;
 use serde::Serialize;
 use subxt::{
+    Config,
     config::{
         DefaultExtrinsicParams,
         ExtrinsicParams,
@@ -54,7 +55,6 @@ use subxt::{
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
     },
-    Config,
 };
 
 #[derive(Debug, clap::Args)]
@@ -159,10 +159,10 @@ impl UploadCommand {
                 upload_exec.set_storage_deposit_limit(Some(limit.deposit));
             }
 
-            if let Some(chain) = chain.production() {
-                if !upload_exec.opts().contract_artifacts()?.is_verifiable() {
-                    prompt_confirm_unverifiable_upload(&chain.to_string())?
-                }
+            if let Some(chain) = chain.production()
+                && !upload_exec.opts().contract_artifacts()?.is_verifiable()
+            {
+                prompt_confirm_unverifiable_upload(&chain.to_string())?
             }
             let upload_result = upload_exec.upload_code().await?;
             let display_events = DisplayEvents::from_events::<C, C>(

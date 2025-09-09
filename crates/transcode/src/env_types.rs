@@ -15,10 +15,10 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    assert_not_shortened_hex,
     AccountId32,
     Hex,
     Value,
+    assert_not_shortened_hex,
 };
 use anyhow::{
     Context,
@@ -31,10 +31,10 @@ use scale::{
     Output,
 };
 use scale_info::{
-    form::PortableForm,
     IntoPortable,
     Path,
     TypeInfo,
+    form::PortableForm,
 };
 use std::{
     boxed::Box,

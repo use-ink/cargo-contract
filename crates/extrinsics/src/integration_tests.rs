@@ -58,8 +58,8 @@ use subxt::{
     PolkadotConfig as DefaultConfig,
 };
 use subxt_signer::{
-    sr25519::Keypair,
     SecretUri,
+    sr25519::Keypair,
 };
 
 const CONTRACTS_NODE: &str = "ink-node";
@@ -77,8 +77,7 @@ fn extract_contract_address(stdout: &str) -> &str {
     let caps = regex
         .captures(stdout)
         .expect("contract account regex capture");
-    let contract_account = caps.get(1).unwrap().as_str();
-    contract_account
+    caps.get(1).unwrap().as_str()
 }
 
 /// Spawn and manage an instance of a compatible contracts enabled chain node.

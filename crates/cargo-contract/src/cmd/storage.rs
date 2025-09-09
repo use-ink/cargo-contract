@@ -15,8 +15,8 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    parse_account,
     CLIChainOpts,
+    parse_account,
 };
 use crate::call_with_config;
 use anyhow::Result;
@@ -40,12 +40,12 @@ use std::{
     str::FromStr,
 };
 use subxt::{
+    Config,
     config::HashFor,
     ext::{
         codec::Decode,
         scale_decode::IntoVisitor,
     },
-    Config,
 };
 
 #[derive(Debug, clap::Args)]

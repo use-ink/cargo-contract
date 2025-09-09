@@ -15,6 +15,9 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    AccountIdMapper,
+    ContractMessageTranscoder,
+    ErrorVariant,
     fetch_contract_binary,
     get_account_nonce,
     pallet_revive_primitives::{
@@ -23,9 +26,6 @@ use super::{
     },
     state_call,
     submit_extrinsic,
-    AccountIdMapper,
-    ContractMessageTranscoder,
-    ErrorVariant,
 };
 use crate::{
     check_env_types,
@@ -36,9 +36,9 @@ use crate::{
     extrinsic_opts::ExtrinsicOpts,
 };
 use anyhow::{
-    anyhow,
     Context,
     Result,
+    anyhow,
 };
 use contract_transcode::Value;
 use ink_env::Environment;
@@ -50,12 +50,14 @@ use scale::{
 };
 use sp_core::Bytes;
 use sp_runtime::{
-    traits::Zero,
     SaturatedConversion,
+    traits::Zero,
 };
 use sp_weights::Weight;
 use std::fmt::Display;
 use subxt::{
+    Config,
+    OnlineClient,
     backend::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
@@ -75,8 +77,6 @@ use subxt::{
         H160,
         H256,
     },
-    Config,
-    OnlineClient,
 };
 
 /// A builder for the instantiate command.

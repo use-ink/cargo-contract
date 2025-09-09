@@ -110,7 +110,8 @@ pub fn create_executable(path: &Path, content: &str) -> MockGuard {
         }
         pathes
     };
-    env::set_var("PATH", env::join_paths(env_paths).unwrap());
+    // TODO: (@davidsemakula) What makes this safe?
+    unsafe { env::set_var("PATH", env::join_paths(env_paths).unwrap()) };
     guard
 }
 

@@ -4,9 +4,9 @@ use std::{
 };
 
 use anyhow::{
-    anyhow,
     Context,
     Result,
+    anyhow,
 };
 use colored::Colorize;
 use contract_build::{

@@ -15,9 +15,9 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    submit_extrinsic,
     ContractMessageTranscoder,
     ErrorVariant,
+    submit_extrinsic,
 };
 use crate::{
     extrinsic_calls::RemoveCode,
@@ -27,6 +27,8 @@ use crate::{
 use anyhow::Result;
 use ink_env::Environment;
 use subxt::{
+    Config,
+    OnlineClient,
     backend::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
@@ -43,8 +45,6 @@ use subxt::{
     },
     tx,
     utils::H256,
-    Config,
-    OnlineClient,
 };
 
 /// A builder for the remove command.
@@ -96,15 +96,20 @@ where
 
         let artifacts_path = artifacts.artifact_path().to_path_buf();
 
-        let final_code_hash = match (self.code_hash.as_ref(), artifacts.contract_binary.as_ref()) {
+        let final_code_hash = match (
+            self.code_hash.as_ref(),
+            artifacts.contract_binary.as_ref(),
+        ) {
             (Some(code_h), _) => Ok(*code_h),
-            (None, Some(_)) => artifacts.code_hash().map(|h| h.into() ),
-            (None, None) => Err(anyhow::anyhow!(
-                "No code_hash was provided or contract code was not found from artifact \
+            (None, Some(_)) => artifacts.code_hash().map(|h| h.into()),
+            (None, None) => {
+                Err(anyhow::anyhow!(
+                    "No code_hash was provided or contract code was not found from artifact \
                 file {}. Please provide a code hash with --code-hash argument or specify the \
                 path for artifacts files with --manifest-path",
-                artifacts_path.display()
-            )),
+                    artifacts_path.display()
+                ))
+            }
         }?;
 
         let url = self.extrinsic_opts.url();

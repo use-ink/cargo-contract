@@ -22,6 +22,9 @@ use super::{
 };
 use escape8259::unescape;
 use nom::{
+    AsChar,
+    IResult,
+    Parser,
     branch::alt,
     bytes::complete::{
         tag,
@@ -45,13 +48,10 @@ use nom::{
         separated_pair,
         tuple,
     },
-    AsChar,
-    IResult,
-    Parser,
 };
 use nom_supreme::{
-    error::ErrorTree,
     ParserExt,
+    error::ErrorTree,
 };
 use std::str::FromStr as _;
 
