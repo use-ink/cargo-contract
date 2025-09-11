@@ -1471,7 +1471,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-contract"
-version = "6.0.0-alpha.1"
+version = "6.0.0-alpha.3"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -1839,7 +1839,7 @@ checksum = "7c74b8349d32d297c9134b8c88677813a227df8f779daa29bfc29c183fe3dca6"
 
 [[package]]
 name = "contract-analyze"
-version = "6.0.0-alpha.1"
+version = "6.0.0-alpha.3"
 dependencies = [
  "anyhow",
  "contract-metadata",
@@ -1847,7 +1847,7 @@ dependencies = [
 
 [[package]]
 name = "contract-build"
-version = "6.0.0-alpha.1"
+version = "6.0.0-alpha.3"
 dependencies = [
  "alloy-json-abi",
  "anyhow",
@@ -1889,7 +1889,7 @@ dependencies = [
 
 [[package]]
 name = "contract-extrinsics"
-version = "6.0.0-alpha.1"
+version = "6.0.0-alpha.3"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -1929,7 +1929,7 @@ dependencies = [
 
 [[package]]
 name = "contract-metadata"
-version = "6.0.0-alpha.1"
+version = "6.0.0-alpha.3"
 dependencies = [
  "anyhow",
  "impl-serde",
@@ -1942,7 +1942,7 @@ dependencies = [
 
 [[package]]
 name = "contract-transcode"
-version = "6.0.0-alpha.1"
+version = "6.0.0-alpha.3"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -3744,8 +3744,8 @@ dependencies = [
 
 [[package]]
 name = "ink"
-version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#415be71c8f8e2186c6d50d142f26dfba0ee7e991"
+version = "6.0.0-alpha.3"
+source = "git+https://github.com/use-ink/ink?branch=master#5dee03ccdc5bf3d26a53dfd287385eedb3d3a695"
 dependencies = [
  "const_format",
  "deranged 0.4.0",
@@ -3770,16 +3770,16 @@ dependencies = [
 
 [[package]]
 name = "ink_allocator"
-version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#415be71c8f8e2186c6d50d142f26dfba0ee7e991"
+version = "6.0.0-alpha.3"
+source = "git+https://github.com/use-ink/ink?branch=master#5dee03ccdc5bf3d26a53dfd287385eedb3d3a695"
 dependencies = [
  "cfg-if",
 ]
 
 [[package]]
 name = "ink_codegen"
-version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#415be71c8f8e2186c6d50d142f26dfba0ee7e991"
+version = "6.0.0-alpha.3"
+source = "git+https://github.com/use-ink/ink?branch=master#5dee03ccdc5bf3d26a53dfd287385eedb3d3a695"
 dependencies = [
  "blake2",
  "derive_more 2.0.1",
@@ -3800,14 +3800,13 @@ dependencies = [
 
 [[package]]
 name = "ink_engine"
-version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#415be71c8f8e2186c6d50d142f26dfba0ee7e991"
+version = "6.0.0-alpha.3"
+source = "git+https://github.com/use-ink/ink?branch=master#5dee03ccdc5bf3d26a53dfd287385eedb3d3a695"
 dependencies = [
  "blake2",
  "derive_more 2.0.1",
  "hex-literal 1.0.0",
  "ink_primitives",
- "pallet-revive",
  "pallet-revive-uapi",
  "parity-scale-codec",
  "secp256k1 0.30.0",
@@ -3817,8 +3816,8 @@ dependencies = [
 
 [[package]]
 name = "ink_env"
-version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#415be71c8f8e2186c6d50d142f26dfba0ee7e991"
+version = "6.0.0-alpha.3"
+source = "git+https://github.com/use-ink/ink?branch=master#5dee03ccdc5bf3d26a53dfd287385eedb3d3a695"
 dependencies = [
  "blake2",
  "cfg-if",
@@ -3832,7 +3831,6 @@ dependencies = [
  "ink_primitives",
  "ink_storage_traits",
  "num-traits",
- "pallet-revive",
  "pallet-revive-uapi",
  "parity-scale-codec",
  "polkavm-derive 0.26.0",
@@ -3851,8 +3849,8 @@ dependencies = [
 
 [[package]]
 name = "ink_ir"
-version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#415be71c8f8e2186c6d50d142f26dfba0ee7e991"
+version = "6.0.0-alpha.3"
+source = "git+https://github.com/use-ink/ink?branch=master#5dee03ccdc5bf3d26a53dfd287385eedb3d3a695"
 dependencies = [
  "blake2",
  "either",
@@ -3867,8 +3865,8 @@ dependencies = [
 
 [[package]]
 name = "ink_macro"
-version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#415be71c8f8e2186c6d50d142f26dfba0ee7e991"
+version = "6.0.0-alpha.3"
+source = "git+https://github.com/use-ink/ink?branch=master#5dee03ccdc5bf3d26a53dfd287385eedb3d3a695"
 dependencies = [
  "ink_codegen",
  "ink_ir",
@@ -3882,8 +3880,8 @@ dependencies = [
 
 [[package]]
 name = "ink_metadata"
-version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#415be71c8f8e2186c6d50d142f26dfba0ee7e991"
+version = "6.0.0-alpha.3"
+source = "git+https://github.com/use-ink/ink?branch=master#5dee03ccdc5bf3d26a53dfd287385eedb3d3a695"
 dependencies = [
  "derive_more 2.0.1",
  "impl-serde",
@@ -3897,16 +3895,16 @@ dependencies = [
 
 [[package]]
 name = "ink_prelude"
-version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#415be71c8f8e2186c6d50d142f26dfba0ee7e991"
+version = "6.0.0-alpha.3"
+source = "git+https://github.com/use-ink/ink?branch=master#5dee03ccdc5bf3d26a53dfd287385eedb3d3a695"
 dependencies = [
  "cfg-if",
 ]
 
 [[package]]
 name = "ink_primitives"
-version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#415be71c8f8e2186c6d50d142f26dfba0ee7e991"
+version = "6.0.0-alpha.3"
+source = "git+https://github.com/use-ink/ink?branch=master#5dee03ccdc5bf3d26a53dfd287385eedb3d3a695"
 dependencies = [
  "alloy-sol-types",
  "cfg-if",
@@ -3915,7 +3913,6 @@ dependencies = [
  "ink_prelude",
  "itertools 0.14.0",
  "num-traits",
- "pallet-revive",
  "pallet-revive-uapi",
  "parity-scale-codec",
  "paste",
@@ -3933,8 +3930,8 @@ dependencies = [
 
 [[package]]
 name = "ink_storage"
-version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#415be71c8f8e2186c6d50d142f26dfba0ee7e991"
+version = "6.0.0-alpha.3"
+source = "git+https://github.com/use-ink/ink?branch=master#5dee03ccdc5bf3d26a53dfd287385eedb3d3a695"
 dependencies = [
  "array-init",
  "cfg-if",
@@ -3951,8 +3948,8 @@ dependencies = [
 
 [[package]]
 name = "ink_storage_traits"
-version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#415be71c8f8e2186c6d50d142f26dfba0ee7e991"
+version = "6.0.0-alpha.3"
+source = "git+https://github.com/use-ink/ink?branch=master#5dee03ccdc5bf3d26a53dfd287385eedb3d3a695"
 dependencies = [
  "ink_metadata",
  "ink_prelude",
