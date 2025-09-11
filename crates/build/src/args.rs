@@ -26,6 +26,10 @@ use std::{
 use anyhow::Result;
 use clap::Args;
 use polkavm_linker::TARGET_JSON_64_BIT as POLKAVM_TARGET_JSON_64_BIT;
+use rustversion::{
+    before,
+    since,
+};
 
 use crate::CrateMetadata;
 
@@ -147,6 +151,26 @@ pub struct Target;
 impl Target {
     /// The target string to be passed to rustc in order to build for this target.
     pub fn llvm_target(crate_metadata: &CrateMetadata) -> String {
+        // With Rust 1.91, the `target-pointer-width` field became an Integer
+        // instead of a String. Depending on the toolchain this crate is compiled
+        // with, we transform the value in the PolkaVM JSON into the correct format.
+        //
+        // See <https://github.com/rust-lang/rust/pull/144443> for more details.
+        #[since(1.91)]
+        fn target_spec() -> String {
+            POLKAVM_TARGET_JSON_64_BIT.to_string().replace(
+                r#"target-pointer-width": "64""#,
+                r#"target-pointer-width": 64"#,
+            )
+        }
+        #[before(1.91)]
+        fn target_spec() -> String {
+            POLKAVM_TARGET_JSON_64_BIT.to_string().replace(
+                r#"target-pointer-width": 64"#,
+                r#"target-pointer-width": "64""#,
+            )
+        }
+
         // Instead of a target literal we use a JSON file with a more complex
         // target configuration here. The path to the file is passed for the
         // `rustc --target` argument. We write this file to the `target/` folder.
@@ -157,8 +181,7 @@ impl Target {
                 panic!("unable to create target dir {target_dir:?}: {e:?}")
             });
             let mut file = File::create(&path).unwrap();
-            file.write_all(POLKAVM_TARGET_JSON_64_BIT.as_bytes())
-                .unwrap();
+            file.write_all(target_spec().as_bytes()).unwrap();
         }
         path
     }
