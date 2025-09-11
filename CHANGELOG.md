@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]
 
+## [6.0.0-alpha.3]
+
+Compatibility of this release:
+
+* Rust >= 1.88
+* [ink! `v6.0.0-alpha.3`](https://github.com/use-ink/ink/releases/tag/v6.0.0-alpha.3)
+* [`ink-node` `v0.45.1`](https://github.com/use-ink/ink-node/releases/tag/v0.45.1)
+* [`polkadot-sdk` from `use-ink/polkadot-sdk/a71ec19a94702ea71767ba5ac97603ea6c6305c1`](https://github.com/use-ink/polkadot-sdk/tree/pallet-revive-with-system-and-storage-precompiles)
+
+We have to use a slight fork of `polkadot-sdk` for the moment. It's just `polkadot-sdk/master` plus two
+commits on top with pre-compiles. Those two commits are PRs to `polkadot-sdk`. but haven't been merged yet.
+
 ### Changed
 - Upgrade to `subxt` `0.44` ‒ [2127](https://github.com/use-ink/cargo-contract/pull/2127)
 - Synchronized with `polkadot-sdk/c40b36c3a7c208f9a6837b80812473af3d9ba7f7` ‒ [2102](https://github.com/use-ink/cargo-contract/pull/2102)
