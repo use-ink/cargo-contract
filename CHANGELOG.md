@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Compatibility of this release:
 
 * Rust >= 1.88
-* [`cargo-contract` `v6.0.0-alpha.3`](https://github.com/use-ink/cargo-contract/releases/tag/v6.0.0-alpha.3)
+* [ink! `v6.0.0-alpha.3`](https://github.com/use-ink/ink/releases/tag/v6.0.0-alpha.3)
 * [`ink-node` `v0.45.1`](https://github.com/use-ink/ink-node/releases/tag/v0.45.1)
 * [`polkadot-sdk` from `use-ink/polkadot-sdk/a71ec19a94702ea71767ba5ac97603ea6c6305c1`](https://github.com/use-ink/polkadot-sdk/tree/pallet-revive-with-system-and-storage-precompiles)
 
