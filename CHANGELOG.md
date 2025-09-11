@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]
 
+### Changed
+- Handle Rust >= 1.91 change of `target-pointer-width` JSON type ‒ [2131](https://github.com/use-ink/cargo-contract/pull/2131)
+
 ## [6.0.0-alpha.3]
 
 Compatibility of this release:
