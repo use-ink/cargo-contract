@@ -57,20 +57,22 @@ use anyhow::{
 use bollard::{
     Docker,
     container::{
-        AttachContainerOptions,
         AttachContainerResults,
-        Config,
-        CreateContainerOptions,
-        ListContainersOptions,
         LogOutput,
-        RemoveContainerOptions,
     },
     errors::Error,
-    image::{
-        CreateImageOptions,
-        ListImagesOptions,
+    models::{
+        ContainerCreateBody,
+        CreateImageInfo,
     },
-    models::CreateImageInfo,
+    query_parameters::{
+        AttachContainerOptions,
+        CreateContainerOptions,
+        CreateImageOptions,
+        ListContainersOptions,
+        ListImagesOptions,
+        RemoveContainerOptions,
+    },
     service::{
         HostConfig,
         ImageSummary,
@@ -311,7 +313,7 @@ async fn find_local_image(
     image: String,
 ) -> Result<Option<ImageSummary>> {
     let images = client
-        .list_images(Some(ListImagesOptions::<String> {
+        .list_images(Some(ListImagesOptions {
             all: true,
             ..Default::default()
         }))
@@ -350,9 +352,9 @@ async fn create_container(
     filters.insert("name".to_string(), vec![container_name.clone()]);
 
     let containers = client
-        .list_containers(Some(ListContainersOptions::<String> {
+        .list_containers(Some(ListContainersOptions {
             all: true,
-            filters,
+            filters: Some(filters),
             ..Default::default()
         }))
         .await?;
@@ -393,7 +395,7 @@ async fn create_container(
         user = None;
     }
 
-    let config = Config {
+    let config = ContainerCreateBody {
         image: Some(build_image.to_string()),
         entrypoint: Some(entrypoint),
         cmd: Some(cmd),
@@ -403,8 +405,8 @@ async fn create_container(
         ..Default::default()
     };
     let options = Some(CreateContainerOptions {
-        name: container_name.as_str(),
-        platform: Some("linux/amd64"),
+        name: Some(container_name.clone()),
+        platform: "linux/amd64".to_string(),
     });
 
     match client
@@ -441,16 +443,19 @@ async fn run_build(
     verbosity: &Verbosity,
 ) -> Result<BuildResult> {
     client
-        .start_container::<String>(container_name, None)
+        .start_container(
+            container_name,
+            None::<bollard::query_parameters::StartContainerOptions>,
+        )
         .await?;
 
     let AttachContainerResults { mut output, .. } = client
         .attach_container(
             container_name,
-            Some(AttachContainerOptions::<String> {
-                stdout: Some(true),
-                stderr: Some(true),
-                stream: Some(true),
+            Some(AttachContainerOptions {
+                stdout: true,
+                stderr: true,
+                stream: true,
                 ..Default::default()
             }),
         )
@@ -540,7 +545,7 @@ fn compose_build_args() -> Result<Vec<String>> {
 async fn pull_image(client: &Docker, image: String, verbosity: &Verbosity) -> Result<()> {
     let mut pull_image_stream = client.create_image(
         Some(CreateImageOptions {
-            from_image: image,
+            from_image: Some(image),
             ..Default::default()
         }),
         None,

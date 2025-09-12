@@ -20,8 +20,6 @@ contract-metadata = { version = "6.0.0-alpha.3", path = "../metadata" }
 contract-transcode = { version = "6.0.0-alpha.3", path = "../transcode" }
 
 anyhow = "1.0.98"
-blake2 = { version = "0.10.6", default-features = false }
-futures = { version = "0.3.31", default-features = false, features = ["std"] }
 itertools = { version = "0.14", default-features = false }
 tracing = "0.1.41"
 scale = { package = "parity-scale-codec", version = "3.6.12", features = ["derive"] }
@@ -31,7 +29,7 @@ serde_json = "1.0.140"
 url = { version = "2.5.4", features = ["serde"] }
 rust_decimal = "1.37.2"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "net"] }
-scale-info = "2.11.6"
+scale-info = {  version = "2.11.6", default-features = false }
 subxt = "0.44.0"
 hex = "0.4.3"
 derivative = "2.2.0"
@@ -46,7 +44,6 @@ ink_metadata = { workspace = true }
 ink_env = { workspace = true }
 
 [dev-dependencies]
-ink = { git = "https://github.com/use-ink/ink", tag = "v6.0.0-alpha.3", features = ["unstable-hostfn"], version = "6.0.0-alpha.3" }
 assert_cmd = "2.0.17"
 regex = "1.11.1"
 predicates = "3.1.3"
