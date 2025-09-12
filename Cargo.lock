@@ -1869,6 +1869,7 @@ dependencies = [
  "pretty_assertions",
  "regex",
  "rustc_version 0.4.1",
+ "rustversion",
  "semver 1.0.26",
  "serde",
  "serde_json",
