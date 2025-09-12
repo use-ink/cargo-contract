@@ -1485,7 +1485,6 @@ dependencies = [
  "contract-metadata",
  "contract-transcode",
  "current_platform",
- "deranged 0.4.0",
  "hex",
  "ink_env",
  "ink_metadata",
@@ -1507,6 +1506,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber 0.3.20",
+ "url",
  "which",
 ]
 
@@ -1883,9 +1883,7 @@ dependencies = [
  "url",
  "uzers",
  "walkdir",
- "which",
- "zip 3.0.0",
- "zip 5.1.1",
+ "zip",
 ]
 
 [[package]]
@@ -9764,18 +9762,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.106",
-]
-
-[[package]]
-name = "zip"
-version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12598812502ed0105f607f941c386f43d441e00148fce9dec3ca5ffb0bde9308"
-dependencies = [
- "arbitrary",
- "crc32fast",
- "indexmap 2.11.0",
- "memchr",
 ]
 
 [[package]]
