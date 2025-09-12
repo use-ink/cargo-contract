@@ -22,7 +22,6 @@ use contract_metadata::{
     compatibility::check_contract_ink_compatibility,
 };
 pub use lint::lint;
-use which as _;
 
 mod args;
 mod crate_metadata;
