@@ -46,11 +46,6 @@ ink = { git = "https://github.com/use-ink/ink", tag = "v6.0.0-alpha.3", features
 sp-core = { git = "https://github.com/use-ink/polkadot-sdk.git", rev = "a71ec19a94702ea71767ba5ac97603ea6c6305c1", default-features = false }
 sp-keyring = { git = "https://github.com/use-ink/polkadot-sdk.git", rev = "a71ec19a94702ea71767ba5ac97603ea6c6305c1", default-features = false }
 
-# todo Remove once the `polkadot-sdk` compilation error
-# for `tokio` is fixed (https://github.com/use-ink/ink/pull/2557).
-[build-dependencies]
-tokio = { version = "1.44.2", features = ["net"], default-features = false }
-
 [features]
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata
 # generation code with `#[cfg(feature = "std")]`.
