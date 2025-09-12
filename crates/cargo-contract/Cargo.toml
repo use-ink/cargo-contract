@@ -52,9 +52,6 @@ hex = "0.4.3"
 sp-core = { git = "https://github.com/use-ink/polkadot-sdk.git", rev = "a71ec19a94702ea71767ba5ac97603ea6c6305c1", default-features = false }
 sp-weights = { git = "https://github.com/use-ink/polkadot-sdk.git", rev = "a71ec19a94702ea71767ba5ac97603ea6c6305c1", default-features = false }
 
-# todo Pin until https://github.com/jhpratt/deranged/issues/18 is resolved
-deranged = { version = "=0.4.0", default-features = false }
-
 [build-dependencies]
 anyhow = "1.0.95"
 substrate-build-script-utils = { git = "https://github.com/use-ink/polkadot-sdk.git", rev = "a71ec19a94702ea71767ba5ac97603ea6c6305c1", default-features = false }
@@ -76,9 +73,7 @@ sp-keyring = { git = "https://github.com/use-ink/polkadot-sdk.git", rev = "a71ec
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata
 # generation code with `#[cfg(feature = "std")]`.
 default = ["std"]
-std = [
-    "deranged/std",
-]
+std = []
 
 # Enable this to execute long-running tests, which usually are only run on the CI server
 #
