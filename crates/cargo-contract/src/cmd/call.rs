@@ -54,6 +54,7 @@ use contract_extrinsics::{
     CallExec,
     DisplayEvents,
     ExtrinsicOptsBuilder,
+    GenericError,
     TokenMetadata,
     fetch_contract_info,
     pallet_revive_primitives::StorageDeposit,
@@ -196,20 +197,21 @@ impl CallCommand {
                 Ok(ref ret_val) => {
                     if ret_val.did_revert() {
                         let data = ret_val.data[1..].to_vec();
-                        let msg = String::from_utf8(data).unwrap();
-                        panic!("Call did revert {msg:?}");
-                        /*
-                        // todo
-                        ErrorVariant::
-                        let object = ErrorVariant::from_dispatch_error(err, &metadata)?;
-                        if self.output_json() {
-                            return Err(object)
-                        } else {
-                            name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
-                            display_contract_exec_result::<_, MAX_KEY_COL_WIDTH, _>(&result)?;
-                        }
-                        return
-                        */
+                        let err = format!(
+                            "Pre-submission dry-run failed because contract reverted.\n\n\
+                            Contract call executed successfully, but during the execution\n\
+                            the contract consciously decided to revert its state changes.\n\n\
+                            The following data was annotated with the revert operation:\n\n\
+                            Stringified: {}\n\
+                            Raw Bytes:   0x{}\n\
+                            \nUse --skip-dry-run to skip the pre-submission dry-run and submit anyway.\n\
+                            Read more at https://use.ink/docs/v6/contract-debugging/.",
+                            String::from_utf8_lossy(&data),
+                            hex::encode(&data[..])
+                        );
+                        return Err(ErrorVariant::Generic(GenericError::from_message(
+                            err,
+                        )));
                     }
                     let value = call_exec
                         .transcoder()

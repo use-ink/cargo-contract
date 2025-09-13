@@ -310,9 +310,16 @@ where
         Ok(res) => {
             if res.result.did_revert() {
                 return Err(anyhow!(
-                    "Pre-submission dry-run failed because contract reverted:\n{:?}\n\nUse --skip-dry-run to skip this step.",
-                    String::from_utf8(res.result.data)
-                        .expect("unable to convert to utf8")
+                    "Pre-submission dry-run failed because contract reverted.\n\n\
+                    Contract instantiate executed successfully, but during the execution\n\
+                    the contract consciously decided to revert its state changes.\n\n\
+                    The following data was annotated with the revert operation:\n\n\
+                    Stringified: {}\n\
+                    Raw Bytes:   0x{}\n\
+                    \nUse --skip-dry-run to skip the pre-submission dry-run and submit anyway.\n\
+                    Read more at https://use.ink/docs/v6/contract-debugging/.",
+                    String::from_utf8_lossy(&res.result.data.clone()[1..]),
+                    hex::encode(res.result.data)
                 ));
             }
             if !output_json {
