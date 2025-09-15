@@ -95,7 +95,6 @@ pub use instantiate::{
     InstantiateDryRunResult,
     InstantiateExec,
     InstantiateExecResult,
-    contract_address,
 };
 pub use map_account::{
     MapAccountCommandBuilder,

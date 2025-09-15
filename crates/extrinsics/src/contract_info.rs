@@ -26,7 +26,6 @@ use std::fmt::{
 };
 
 use ink_env::Environment;
-use pallet_revive::evm::H256;
 use scale::Decode;
 use std::option::Option;
 use subxt::{
@@ -42,7 +41,10 @@ use subxt::{
         scale_value::Value,
     },
     storage::dynamic,
-    utils::H160,
+    utils::{
+        H160,
+        H256,
+    },
 };
 
 /// Return the account data for an account ID.

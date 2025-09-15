@@ -83,6 +83,28 @@ impl StaticEvent for ContractEmitted {
     const EVENT: &'static str = "ContractEmitted";
 }
 
+/// Contract deployed by deployer at the specified address.
+#[derive(
+    scale::Decode,
+    scale::Encode,
+    scale_decode::DecodeAsType,
+    scale_encode::EncodeAsType,
+    Debug,
+)]
+#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
+#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
+pub struct ContractInstantiated {
+    /// Address of the deployer.
+    pub deployer: H160,
+    /// Address where the contract was instantiated to.
+    pub contract: H160,
+}
+
+impl StaticEvent for ContractInstantiated {
+    const PALLET: &'static str = "Revive";
+    const EVENT: &'static str = "Instantiated";
+}
+
 /// Field that represent data of an event from invoking a contract extrinsic.
 #[derive(serde::Serialize)]
 pub struct Field {
