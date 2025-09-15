@@ -17,13 +17,13 @@
 use super::{
     ContractMessageTranscoder,
     ErrorVariant,
+    events::ContractInstantiated,
     pallet_revive_primitives::{
         ContractInstantiateResult,
         StorageDeposit,
     },
     state_call,
     submit_extrinsic,
-    events::ContractInstantiated,
 };
 use crate::{
     check_env_types,
@@ -395,7 +395,7 @@ where
         let instantiated = events
             .find_first::<ContractInstantiated>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
-        
+
         Ok(InstantiateExecResult {
             events,
             code_hash: None,
