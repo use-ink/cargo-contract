@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Handle Rust >= 1.91 change of `target-pointer-width` JSON type ‒ [2131](https://github.com/use-ink/cargo-contract/pull/2131)
+- Retrieve the contract address from the `Instantiated` event  ‒ [2134](https://github.com/use-ink/cargo-contract/pull/2134)
 
 ## [6.0.0-alpha.3]
 
