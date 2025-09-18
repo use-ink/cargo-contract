@@ -1,6 +1,6 @@
 [package]
 name = "contract-transcode"
-version = "6.0.0-alpha.3"
+version = "6.0.0-alpha.4"
 authors = ["Use Ink <ink@use.ink>"]
 edition = "2024"
 
@@ -20,7 +20,7 @@ path = "src/lib.rs"
 anyhow = "1.0.95"
 base58 = { version = "0.2.0" }
 blake2 = { version = "0.10.6", default-features = false }
-contract-metadata = { version = "6.0.0-alpha.3", path = "../metadata" }
+contract-metadata = { version = "6.0.0-alpha.4", path = "../metadata" }
 escape8259 = "0.5.2"
 hex = "0.4.3"
 indexmap = "2.10.0"
@@ -42,7 +42,7 @@ tokio = { version = "1.44.2", features = ["net", "macros", "rt-multi-thread"] }
 
 [dev-dependencies]
 assert_matches = "1.5.0"
-ink = { git = "https://github.com/use-ink/ink", tag = "v6.0.0-alpha.3", features = ["unstable-hostfn"] }
+ink = { git = "https://github.com/use-ink/ink", tag = "v6.0.0-alpha.4", features = ["unstable-hostfn"] }
 sp-core = { git = "https://github.com/use-ink/polkadot-sdk.git", rev = "a71ec19a94702ea71767ba5ac97603ea6c6305c1", default-features = false }
 sp-keyring = { git = "https://github.com/use-ink/polkadot-sdk.git", rev = "a71ec19a94702ea71767ba5ac97603ea6c6305c1", default-features = false }
 

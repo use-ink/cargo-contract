@@ -1231,7 +1231,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-contract"
-version = "6.0.0-alpha.3"
+version = "6.0.0-alpha.4"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -1575,7 +1575,7 @@ checksum = "7c74b8349d32d297c9134b8c88677813a227df8f779daa29bfc29c183fe3dca6"
 
 [[package]]
 name = "contract-analyze"
-version = "6.0.0-alpha.3"
+version = "6.0.0-alpha.4"
 dependencies = [
  "anyhow",
  "contract-metadata",
@@ -1583,7 +1583,7 @@ dependencies = [
 
 [[package]]
 name = "contract-build"
-version = "6.0.0-alpha.3"
+version = "6.0.0-alpha.4"
 dependencies = [
  "alloy-json-abi",
  "anyhow",
@@ -1624,7 +1624,7 @@ dependencies = [
 
 [[package]]
 name = "contract-extrinsics"
-version = "6.0.0-alpha.3"
+version = "6.0.0-alpha.4"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -1661,7 +1661,7 @@ dependencies = [
 
 [[package]]
 name = "contract-metadata"
-version = "6.0.0-alpha.3"
+version = "6.0.0-alpha.4"
 dependencies = [
  "anyhow",
  "impl-serde",
@@ -1674,7 +1674,7 @@ dependencies = [
 
 [[package]]
 name = "contract-transcode"
-version = "6.0.0-alpha.3"
+version = "6.0.0-alpha.4"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -1921,12 +1921,6 @@ dependencies = [
  "pem-rfc7468",
  "zeroize",
 ]
-
-[[package]]
-name = "deranged"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c9e6a11ca8224451684bc0d7d5a7adbf8f2fd6887261a1cfc3c0432f9d4068e"
 
 [[package]]
 name = "deranged"
@@ -3313,11 +3307,10 @@ dependencies = [
 
 [[package]]
 name = "ink"
-version = "6.0.0-alpha.3"
-source = "git+https://github.com/use-ink/ink?tag=v6.0.0-alpha.3#5dee03ccdc5bf3d26a53dfd287385eedb3d3a695"
+version = "6.0.0-alpha.4"
+source = "git+https://github.com/use-ink/ink?tag=v6.0.0-alpha.4#fc608bfa1a78f7068a64907c616c40749fbb7723"
 dependencies = [
  "const_format",
- "deranged 0.4.0",
  "derive_more 2.0.1",
  "ink_env",
  "ink_macro",
@@ -3334,21 +3327,20 @@ dependencies = [
  "sp-io",
  "sp-runtime-interface",
  "staging-xcm",
- "tokio",
 ]
 
 [[package]]
 name = "ink_allocator"
-version = "6.0.0-alpha.3"
-source = "git+https://github.com/use-ink/ink?tag=v6.0.0-alpha.3#5dee03ccdc5bf3d26a53dfd287385eedb3d3a695"
+version = "6.0.0-alpha.4"
+source = "git+https://github.com/use-ink/ink?tag=v6.0.0-alpha.4#fc608bfa1a78f7068a64907c616c40749fbb7723"
 dependencies = [
  "cfg-if",
 ]
 
 [[package]]
 name = "ink_codegen"
-version = "6.0.0-alpha.3"
-source = "git+https://github.com/use-ink/ink?tag=v6.0.0-alpha.3#5dee03ccdc5bf3d26a53dfd287385eedb3d3a695"
+version = "6.0.0-alpha.4"
+source = "git+https://github.com/use-ink/ink?tag=v6.0.0-alpha.4#fc608bfa1a78f7068a64907c616c40749fbb7723"
 dependencies = [
  "blake2",
  "derive_more 2.0.1",
@@ -3369,8 +3361,8 @@ dependencies = [
 
 [[package]]
 name = "ink_engine"
-version = "6.0.0-alpha.3"
-source = "git+https://github.com/use-ink/ink?tag=v6.0.0-alpha.3#5dee03ccdc5bf3d26a53dfd287385eedb3d3a695"
+version = "6.0.0-alpha.4"
+source = "git+https://github.com/use-ink/ink?tag=v6.0.0-alpha.4#fc608bfa1a78f7068a64907c616c40749fbb7723"
 dependencies = [
  "blake2",
  "derive_more 2.0.1",
@@ -3385,8 +3377,8 @@ dependencies = [
 
 [[package]]
 name = "ink_env"
-version = "6.0.0-alpha.3"
-source = "git+https://github.com/use-ink/ink?tag=v6.0.0-alpha.3#5dee03ccdc5bf3d26a53dfd287385eedb3d3a695"
+version = "6.0.0-alpha.4"
+source = "git+https://github.com/use-ink/ink?tag=v6.0.0-alpha.4#fc608bfa1a78f7068a64907c616c40749fbb7723"
 dependencies = [
  "blake2",
  "cfg-if",
@@ -3418,8 +3410,8 @@ dependencies = [
 
 [[package]]
 name = "ink_ir"
-version = "6.0.0-alpha.3"
-source = "git+https://github.com/use-ink/ink?tag=v6.0.0-alpha.3#5dee03ccdc5bf3d26a53dfd287385eedb3d3a695"
+version = "6.0.0-alpha.4"
+source = "git+https://github.com/use-ink/ink?tag=v6.0.0-alpha.4#fc608bfa1a78f7068a64907c616c40749fbb7723"
 dependencies = [
  "blake2",
  "either",
@@ -3434,8 +3426,8 @@ dependencies = [
 
 [[package]]
 name = "ink_macro"
-version = "6.0.0-alpha.3"
-source = "git+https://github.com/use-ink/ink?tag=v6.0.0-alpha.3#5dee03ccdc5bf3d26a53dfd287385eedb3d3a695"
+version = "6.0.0-alpha.4"
+source = "git+https://github.com/use-ink/ink?tag=v6.0.0-alpha.4#fc608bfa1a78f7068a64907c616c40749fbb7723"
 dependencies = [
  "ink_codegen",
  "ink_ir",
@@ -3449,8 +3441,8 @@ dependencies = [
 
 [[package]]
 name = "ink_metadata"
-version = "6.0.0-alpha.3"
-source = "git+https://github.com/use-ink/ink?tag=v6.0.0-alpha.3#5dee03ccdc5bf3d26a53dfd287385eedb3d3a695"
+version = "6.0.0-alpha.4"
+source = "git+https://github.com/use-ink/ink?tag=v6.0.0-alpha.4#fc608bfa1a78f7068a64907c616c40749fbb7723"
 dependencies = [
  "derive_more 2.0.1",
  "impl-serde",
@@ -3464,16 +3456,16 @@ dependencies = [
 
 [[package]]
 name = "ink_prelude"
-version = "6.0.0-alpha.3"
-source = "git+https://github.com/use-ink/ink?tag=v6.0.0-alpha.3#5dee03ccdc5bf3d26a53dfd287385eedb3d3a695"
+version = "6.0.0-alpha.4"
+source = "git+https://github.com/use-ink/ink?tag=v6.0.0-alpha.4#fc608bfa1a78f7068a64907c616c40749fbb7723"
 dependencies = [
  "cfg-if",
 ]
 
 [[package]]
 name = "ink_primitives"
-version = "6.0.0-alpha.3"
-source = "git+https://github.com/use-ink/ink?tag=v6.0.0-alpha.3#5dee03ccdc5bf3d26a53dfd287385eedb3d3a695"
+version = "6.0.0-alpha.4"
+source = "git+https://github.com/use-ink/ink?tag=v6.0.0-alpha.4#fc608bfa1a78f7068a64907c616c40749fbb7723"
 dependencies = [
  "alloy-sol-types",
  "cfg-if",
@@ -3499,8 +3491,8 @@ dependencies = [
 
 [[package]]
 name = "ink_storage"
-version = "6.0.0-alpha.3"
-source = "git+https://github.com/use-ink/ink?tag=v6.0.0-alpha.3#5dee03ccdc5bf3d26a53dfd287385eedb3d3a695"
+version = "6.0.0-alpha.4"
+source = "git+https://github.com/use-ink/ink?tag=v6.0.0-alpha.4#fc608bfa1a78f7068a64907c616c40749fbb7723"
 dependencies = [
  "array-init",
  "cfg-if",
@@ -3517,8 +3509,8 @@ dependencies = [
 
 [[package]]
 name = "ink_storage_traits"
-version = "6.0.0-alpha.3"
-source = "git+https://github.com/use-ink/ink?tag=v6.0.0-alpha.3#5dee03ccdc5bf3d26a53dfd287385eedb3d3a695"
+version = "6.0.0-alpha.4"
+source = "git+https://github.com/use-ink/ink?tag=v6.0.0-alpha.4#fc608bfa1a78f7068a64907c616c40749fbb7723"
 dependencies = [
  "ink_metadata",
  "ink_prelude",
@@ -7206,7 +7198,7 @@ version = "0.3.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "83bde6f1ec10e72d583d91623c939f623002284ef622b87de38cfd546cbf2031"
 dependencies = [
- "deranged 0.5.3",
+ "deranged",
  "num-conv",
  "powerfmt",
  "serde",
