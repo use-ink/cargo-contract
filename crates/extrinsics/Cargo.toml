@@ -1,6 +1,6 @@
 [package]
 name = "contract-extrinsics"
-version = "6.0.0-alpha.3"
+version = "6.0.0-alpha.4"
 authors = ["Use Ink <ink@use.ink>"]
 edition = "2024"
 rust-version.workspace = true
@@ -15,9 +15,9 @@ keywords = ["polkavm", "ink", "riscv", "blockchain", "edsl"]
 include = ["Cargo.toml", "*.rs", "LICENSE"]
 
 [dependencies]
-contract-build = { version = "6.0.0-alpha.3", path = "../build" }
-contract-metadata = { version = "6.0.0-alpha.3", path = "../metadata" }
-contract-transcode = { version = "6.0.0-alpha.3", path = "../transcode" }
+contract-build = { version = "6.0.0-alpha.4", path = "../build" }
+contract-metadata = { version = "6.0.0-alpha.4", path = "../metadata" }
+contract-transcode = { version = "6.0.0-alpha.4", path = "../transcode" }
 
 anyhow = "1.0.98"
 itertools = { version = "0.14", default-features = false }
@@ -43,7 +43,7 @@ ink_metadata = { workspace = true }
 ink_env = { workspace = true }
 
 [dev-dependencies]
-ink = { git = "https://github.com/use-ink/ink", tag = "v6.0.0-alpha.3", features = ["unstable-hostfn"], version = "6.0.0-alpha.3" }
+ink = { git = "https://github.com/use-ink/ink", tag = "v6.0.0-alpha.4", features = ["unstable-hostfn"], version = "6.0.0-alpha.4" }
 assert_cmd = "2.0.17"
 regex = "1.11.1"
 predicates = "3.1.3"

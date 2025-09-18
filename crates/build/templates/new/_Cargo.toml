@@ -5,10 +5,10 @@ authors = ["[your_name] <[your_email]>"]
 edition = "2024"
 
 [dependencies]
-ink = { git = "https://github.com/use-ink/ink", tag = "v6.0.0-alpha.3", version = "6.0.0-alpha.3", default-features = false, features = ["unstable-hostfn"] }
+ink = { git = "https://github.com/use-ink/ink", tag = "v6.0.0-alpha.4", version = "6.0.0-alpha.4", default-features = false, features = ["unstable-hostfn"] }
 
 [dev-dependencies]
-ink_e2e = { git = "https://github.com/use-ink/ink", tag = "v6.0.0-alpha.3", version = "6.0.0-alpha.3" }
+ink_e2e = { git = "https://github.com/use-ink/ink", tag = "v6.0.0-alpha.4", version = "6.0.0-alpha.4" }
 
 [lib]
 path = "lib.rs"
