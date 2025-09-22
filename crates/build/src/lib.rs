@@ -305,15 +305,18 @@ fn exec_cargo_for_onchain_target(
         let mut features = features.clone();
         if build_mode == &BuildMode::Debug {
             features.push("ink/ink-debug");
-        } else {
-            args.push("-Zbuild-std-features=panic_immediate_abort".to_owned());
         }
+        // No longer applicable with `wasm32v1-none`?
+        // else {
+        //     args.push("-Zbuild-std-features=panic_immediate_abort".to_owned());
+        // }
         features.append_to_args(&mut args);
         let mut env = Vec::new();
-        if rustc_version::version_meta()?.channel == rustc_version::Channel::Stable {
-            // Allow nightly features on a stable toolchain
-            env.push(("RUSTC_BOOTSTRAP", Some("1".to_string())))
-        }
+        // No longer required with `wasm32v1-none`?
+        // if rustc_version::version_meta()?.channel == rustc_version::Channel::Stable {
+        //     // Allow nightly features on a stable toolchain
+        //     env.push(("RUSTC_BOOTSTRAP", Some("1".to_string())))
+        // }
 
         // merge target specific flags with the common flags (defined here)
         // We want to disable warnings here as they will be duplicates of the clippy pass.
@@ -323,11 +326,16 @@ fn exec_cargo_for_onchain_target(
         // to live with duplicated warnings. For the metadata build we can disable
         // warnings.
         let rustflags = {
-            let common_flags = "-Clinker-plugin-lto";
+            // Current cause of problematic debug builds on stable (1.87+) due to bulk memory
+            // instructions being used, which are prohibited by pallet-contracts.
+            //  See https://github.com/llvm/llvm-project/issues/109443 for more details.
+            //let common_flags = "-Clinker-plugin-lto";
             if let Some(target_flags) = target.rustflags() {
-                format!("{}\x1f{}", common_flags, target_flags)
+                //format!("{}\x1f{}", common_flags, target_flags)
+                target_flags.to_string()
             } else {
-                common_flags.to_string()
+                //common_flags.to_string()
+                String::default()
             }
         };
 
@@ -527,7 +535,8 @@ fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
 fn onchain_cargo_options(target: &Target) -> Vec<String> {
     vec![
         format!("--target={}", target.llvm_target()),
-        "-Zbuild-std=core,alloc".to_owned(),
+        // No longer applicable with `wasm32v1-none`?
+        //"-Zbuild-std=core,alloc".to_owned(),
         "--no-default-features".to_owned(),
     ]
 }

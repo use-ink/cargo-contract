@@ -156,7 +156,7 @@ impl Target {
     /// The target string to be passed to rustc in order to build for this target.
     pub fn llvm_target(&self) -> &'static str {
         match self {
-            Self::Wasm => "wasm32-unknown-unknown",
+            Self::Wasm => "wasm32v1-none",
             Self::RiscV => "riscv32i-unknown-none-elf",
         }
     }
