@@ -1177,4 +1177,85 @@ async fn complex_types_for_contract_interaction() {
     let _ = node_process;
 }
 
+/// Test that the `--code-hash` argument for `cargo contract instantiate` works.
+///
+/// # Note
+///
+/// Requires [`substrate-contracts-node`](https://github.com/paritytech/substrate-contracts-node/) to
+/// be installed and available on the `PATH`, and the no other process running using the
+/// default port `9944`.
+#[tokio::test]
+async fn instantiate_with_code_hash() {
+    init_tracing_subscriber();
+
+    let tmp_dir = tempfile::Builder::new()
+        .prefix("cargo-contract.cli.test.")
+        .tempdir()
+        .expect("temporary directory creation failed");
+
+    cargo_contract(tmp_dir.path())
+        .arg("new")
+        .arg("flipper")
+        .assert()
+        .success();
+
+    let mut project_path = tmp_dir.path().to_path_buf();
+    project_path.push("flipper");
+
+    cargo_contract(project_path.as_path())
+        .arg("build")
+        .assert()
+        .success();
+
+    let _node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
+        .await
+        .expect("Error spawning contracts node");
+
+    let output = cargo_contract(project_path.as_path())
+        .arg("upload")
+        .args(["--suri", "//Alice"])
+        .arg("-x")
+        .output()
+        .expect("failed to execute process");
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout[..]);
+    assert!(output.status.success(), "upload code failed: {stderr}");
+
+    let re = Regex::new(r"Code hash (0x[0-9a-fA-F]{64})\n").unwrap();
+    let code_hash = re
+        .captures(&stdout)
+        .expect("must exist")
+        .get(1)
+        .unwrap()
+        .as_str();
+
+    let output = cargo_contract(project_path.as_path())
+        .arg("instantiate")
+        .args(["--code-hash", code_hash])
+        .args(["--constructor", "new"])
+        .args(["--args", "true"])
+        .args(["--suri", "//Alice"])
+        .arg("-x")
+        .output()
+        .expect("failed to execute process");
+    let stdout = str::from_utf8(&output.stdout).unwrap();
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(output.status.success(), "instantiate failed: {stderr}");
+
+    let contract_account = extract_contract_address(stdout);
+    assert_eq!(42, contract_account.len(), "{stdout:?}");
+
+    let call_get_rpc = |expected: bool| {
+        cargo_contract(project_path.as_path())
+            .arg("call")
+            .args(["--message", "get"])
+            .args(["--contract", contract_account])
+            .args(["--suri", "//Alice"])
+            .assert()
+            .stdout(predicate::str::contains(expected.to_string()));
+    };
+
+    call_get_rpc(true);
+}
+
 // todo add integration tests for `cargo contract account`

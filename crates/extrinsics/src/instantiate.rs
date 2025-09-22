@@ -42,6 +42,7 @@ use contract_transcode::Value;
 use ink_env::Environment;
 use serde::Serialize;
 
+use contract_build::util::decode_hex;
 use scale::{
     Decode,
     Encode,
@@ -83,6 +84,7 @@ pub struct InstantiateCommandBuilder<C: Config, E: Environment, Signer: Clone> {
     gas_limit: Option<u64>,
     proof_size: Option<u64>,
     salt: Option<Bytes>,
+    code_hash: Option<String>,
 }
 
 impl<C: Config, E: Environment, Signer> InstantiateCommandBuilder<C, E, Signer>
@@ -103,6 +105,7 @@ where
             gas_limit: None,
             proof_size: None,
             salt: None,
+            code_hash: None,
         }
     }
 
@@ -148,6 +151,13 @@ where
         this
     }
 
+    /// Sets an on-chain code hash to instantiate the contract from.
+    pub fn code_hash(self, code_hash: Option<String>) -> Self {
+        let mut this = self;
+        this.code_hash = code_hash;
+        this
+    }
+
     /// Preprocesses contract artifacts and options for instantiation.
     ///
     /// This function prepares the required data for instantiating a contract based on the
@@ -162,12 +172,24 @@ where
         let transcoder = artifacts.contract_transcoder()?;
         let data = transcoder.encode(&self.constructor, &self.args)?;
         let url = self.extrinsic_opts.url();
-        let code = if let Some(code) = artifacts.contract_binary {
-            Code::Upload(code.0)
-        } else {
-            let code_hash = artifacts.code_hash()?;
-            Code::Existing(code_hash.into())
+        let code = {
+            // if a particular code hash was set, this one always takes precedent
+            if let Some(code_hash) = self.code_hash {
+                let hash = decode_hex(&code_hash).map_err(|err| {
+                    anyhow!("Could not parse hash from input, input must be a hex String (0x…): {:?}", err)
+                })?;
+                Code::Existing(H256::from_slice(hash.as_slice()))
+            } else {
+                // otherwise we use the code hash from the artifacts
+                if let Some(code) = artifacts.contract_binary {
+                    Code::Upload(code.0)
+                } else {
+                    let code_hash = artifacts.code_hash()?;
+                    Code::Existing(code_hash.into())
+                }
+            }
         };
+
         let salt = self.salt.clone().map(|s| {
             let bytes = s.0;
             assert!(bytes.len() <= 32, "salt has to be <= 32 bytes");

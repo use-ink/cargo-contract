@@ -108,6 +108,9 @@ pub struct InstantiateCommand {
     /// Export the instantiate output in JSON format.
     #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
+    /// Instantiate the contract from the supplied code hash.
+    #[clap(name = "code-hash", long, conflicts_with = "manifest_path")]
+    code_hash: Option<String>,
 }
 
 /// Parse hex encoded bytes.
@@ -183,6 +186,7 @@ impl InstantiateCommand {
                 .gas_limit(self.gas_limit)
                 .proof_size(self.proof_size)
                 .salt(self.salt.clone())
+                .code_hash(self.code_hash.clone())
                 .done()
                 .await?;
 
