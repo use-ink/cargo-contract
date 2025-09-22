@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]
 
+### Fixed
+- Support `instantiate --code-hash` ‒ [2136](https://github.com/use-ink/cargo-contract/pull/2136)
+
 ## Version 6.0.0-alpha.4
 
 ### Changed
