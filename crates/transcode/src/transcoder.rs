@@ -204,6 +204,7 @@ mod tests {
         TypeInfo,
     };
     use std::str::FromStr;
+    use primitive_types::H160;
 
     fn registry_with_type<T>() -> Result<(PortableRegistry, u32)>
     where
@@ -732,35 +733,15 @@ mod tests {
 
     #[test]
     fn transcode_account_id_custom_ss58_encoding_seq() -> Result<()> {
-        let hex_to_bytes = |hex: &str| -> Result<Value> {
-            let hex = Hex::from_str(hex)?;
-            let values = hex.bytes().iter().map(|b| Value::UInt((*b).into()));
-            Ok(Value::Seq(Seq::new(values.collect())))
-        };
-
         transcode_roundtrip::<Vec<AccountId32>>(
             r#"[
                 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY,
                 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty,
              ]"#,
-            Value::Seq(Seq::new(
-                vec![
-                    Value::Tuple(
-                        Tuple::new(
-                            Some("AccountId32"),
-                            vec![hex_to_bytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d")?]
-                        )
-                    ),
-                    Value::Tuple(
-                        Tuple::new(
-                            Some("AccountId32"),
-                            vec![hex_to_bytes("0x8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48")?]
-                        )
-                    )
-                ]
-                    .into_iter()
-                    .collect(),
-            )),
+             Value::Seq(Seq::new(vec![
+                Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into()),
+                Value::Literal("5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty".into()),
+            ])),
         )
     }
 
@@ -853,6 +834,20 @@ mod tests {
                 .into_iter()
                 .collect(),
             )),
+        )
+    }
+
+    #[test]
+    fn transcode_h160_vec() -> Result<()> {
+        transcode_roundtrip::<Vec<H160>>(
+            r#"[
+                0x9621dde636de098b43efb0fa9b61facfe328f99d,
+                0x41dccbd49b26c50d34355ed86ff0fa9e489d1e01
+            ]"#,
+            Value::Seq(Seq::new(vec![
+                Value::Literal("0x9621dde636de098b43efb0fa9b61facfe328f99d".into()),
+                Value::Literal("0x41dccbd49b26c50d34355ed86ff0fa9e489d1e01".into()),
+            ])),
         )
     }
 }

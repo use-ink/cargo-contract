@@ -87,9 +87,6 @@ impl<'a> Decoder<'a> {
         input: &mut &[u8],
     ) -> Result<Value> {
         let type_id = ty.id;
-        let ty = self.registry.resolve(type_id).ok_or_else(|| {
-            anyhow::anyhow!("Failed to find type with id '{}'", type_id)
-        })?;
 
         let mut elems = Vec::new();
         while elems.len() < len {
