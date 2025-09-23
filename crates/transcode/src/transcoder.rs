@@ -197,6 +197,7 @@ mod tests {
         },
         *,
     };
+    use primitive_types::H160;
     use scale::Encode;
     use scale_info::{
         MetaType,
@@ -204,7 +205,6 @@ mod tests {
         TypeInfo,
     };
     use std::str::FromStr;
-    use primitive_types::H160;
 
     fn registry_with_type<T>() -> Result<(PortableRegistry, u32)>
     where
@@ -738,7 +738,7 @@ mod tests {
                 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY,
                 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty,
              ]"#,
-             Value::Seq(Seq::new(vec![
+            Value::Seq(Seq::new(vec![
                 Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into()),
                 Value::Literal("5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty".into()),
             ])),
@@ -845,8 +845,8 @@ mod tests {
                 0x41dccbd49b26c50d34355ed86ff0fa9e489d1e01
             ]"#,
             Value::Seq(Seq::new(vec![
-                Value::Literal("0x9621dde636de098b43efb0fa9b61facfe328f99d".into()),
-                Value::Literal("0x41dccbd49b26c50d34355ed86ff0fa9e489d1e01".into()),
+                Value::Hex(Hex::from_str("0x9621dde636de098b43efb0fa9b61facfe328f99d")?),
+                Value::Hex(Hex::from_str("0x41dccbd49b26c50d34355ed86ff0fa9e489d1e01")?),
             ])),
         )
     }
