@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Support `instantiate --code-hash` ‒ [2136](https://github.com/use-ink/cargo-contract/pull/2136)
+- Properly decode `Address` values inside Vectors - [2137](https://github.com/use-ink/cargo-contract/pull/2137)
 
 ## Version 6.0.0-alpha.4
 
