@@ -62,7 +62,7 @@ which = "8.0.0"
 assert_cmd = "2.0.17"
 regex = "1.11.1"
 predicates = "3.1.3"
-tempfile = "3.20.0"
+tempfile = "3.23.0"
 sp-keyring = { git = "https://github.com/use-ink/polkadot-sdk.git", rev = "a71ec19a94702ea71767ba5ac97603ea6c6305c1", default-features = false }
 
 [features]
