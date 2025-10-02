@@ -15,4 +15,4 @@ include = ["Cargo.toml", "*.rs", "LICENSE"]
 
 [dependencies]
 contract-metadata = { version = "6.0.0-alpha.4", path = "../metadata" }
-anyhow = "1.0.98"
+anyhow = "1.0.100"

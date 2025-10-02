@@ -24,7 +24,7 @@ contract-transcode = { version = "6.0.0-alpha.4", path = "../transcode" }
 contract-metadata = { version = "6.0.0-alpha.4", path = "../metadata" }
 contract-analyze = { version = "6.0.0-alpha.4", path = "../analyze" }
 
-anyhow = "1.0.98"
+anyhow = "1.0.100"
 clap = { version = "4.5.48", features = ["derive", "env"] }
 primitive-types = { version = "0.13.1", default-features = false, features = ["codec", "scale-info", "serde"] }
 tracing = "0.1.41"
@@ -53,7 +53,7 @@ sp-core = { git = "https://github.com/use-ink/polkadot-sdk.git", rev = "a71ec19a
 sp-weights = { git = "https://github.com/use-ink/polkadot-sdk.git", rev = "a71ec19a94702ea71767ba5ac97603ea6c6305c1", default-features = false }
 
 [build-dependencies]
-anyhow = "1.0.95"
+anyhow = "1.0.100"
 substrate-build-script-utils = { git = "https://github.com/use-ink/polkadot-sdk.git", rev = "a71ec19a94702ea71767ba5ac97603ea6c6305c1", default-features = false }
 current_platform = "0.2.0"
 which = "8.0.0"
