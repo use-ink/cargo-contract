@@ -58,17 +58,13 @@ pub fn check_contract_ink_compatibility(
         .cargo_contract_compatibility
         .get(&cargo_contract_version)
         .ok_or(anyhow!(
-            "Missing compatibility configuration for cargo-contract: {}",
-            cargo_contract_version
+            "Missing compatibility configuration for cargo-contract: {cargo_contract_version}",
         ))?
         .ink_requirements;
 
     // Ink! requirements can not be empty
     if ink_req.is_empty() {
-        bail!(
-            "Missing ink! requirements for cargo-contract: {}",
-            cargo_contract_version
-        );
+        bail!("Missing ink! requirements for cargo-contract: {cargo_contract_version}",);
     }
 
     // Check if the ink! version matches any of the requirement
@@ -108,17 +104,12 @@ pub fn check_contract_ink_compatibility(
                 }
             })
             .ok_or(anyhow!(
-                "{} {}",
-                contract_not_compatible_message,
-                ink_update_message
+                "{contract_not_compatible_message} {ink_update_message}",
             ))?;
 
         bail!(
-            "{} Please use cargo-contract in version \
-            '{}' or {}",
-            contract_not_compatible_message,
-            best_cargo_contract_version,
-            ink_update_message
+            "{contract_not_compatible_message} Please use cargo-contract in version \
+            '{best_cargo_contract_version}' or {ink_update_message}",
         );
     }
     Ok(())
