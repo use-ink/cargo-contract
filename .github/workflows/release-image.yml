@@ -1,5 +1,6 @@
 name: release-verifiable-image
 on:
+  pull_request:
   push:
     branches:
       - "master"
