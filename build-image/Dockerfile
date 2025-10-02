@@ -3,15 +3,15 @@ FROM debian:stable-slim AS slimmed-rust
 # The rust version to use
 ARG RUST_VERSION=stable
 # The cargo contract version to use
-ARG CARGO_CONTRACT_VERSION=6.0.0-alpha
+ARG CARGO_CONTRACT_VERSION
 # Url to the cargo-contract repository to install from
-ARG CARGO_CONTRACT_GIT
+ARG CARGO_CONTRACT_GIT=https://github.com/use-ink/cargo-contract.git
 # Branch to use in git repository
 ARG CARGO_CONTRACT_BRANCH
 # Commit to use in git repository
 ARG CARGO_CONTRACT_REV
 # Tag to use in git repository
-ARG CARGO_CONTRACT_TAG
+ARG CARGO_CONTRACT_TAG=6.0.0-alpha.4
 # gcc package version (meta-package, points to gcc-13)
 ARG GCC_VERSION=4:14.2.0-1
 # wget package version
@@ -22,7 +22,7 @@ ARG G_VERSION=4:14.2.0-1
 ARG MUSL_V=1.2.5-3
 # The Rust version used by `ink_linting`.
 # See https://github.com/use-ink/ink/blob/master/linting/rust-toolchain.toml.
-ARG RUST_LINTER_VERSION=nightly-2025-02-20
+ARG RUST_LINTER_VERSION=nightly-2025-05-14
 ARG TARGETARCH
 
 # Metadata
