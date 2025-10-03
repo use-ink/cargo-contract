@@ -37,7 +37,7 @@ derivative = "2.2.0"
 sp-core = { version = "38.0.0", default-features = false }
 sp-runtime = { version = "43.0.0" }
 sp-weights = { version = "33.0.0", default-features = false }
-pallet-revive-uapi = { version = "0.7.0", default-features = false, features = ["unstable-hostfn", "scale"] }
+pallet-revive-uapi = { version = "0.8.0", default-features = false, features = ["unstable-hostfn", "scale"] }
 
 ink_metadata = { workspace = true }
 ink_env = { workspace = true }
