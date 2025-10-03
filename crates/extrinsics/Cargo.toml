@@ -34,16 +34,16 @@ subxt = "0.44.0"
 hex = "0.4.3"
 derivative = "2.2.0"
 
-sp-core = { git = "https://github.com/use-ink/polkadot-sdk.git", rev = "a71ec19a94702ea71767ba5ac97603ea6c6305c1", default-features = false }
-sp-runtime = { git = "https://github.com/use-ink/polkadot-sdk.git", rev = "a71ec19a94702ea71767ba5ac97603ea6c6305c1" }
-sp-weights = { git = "https://github.com/use-ink/polkadot-sdk.git", rev = "a71ec19a94702ea71767ba5ac97603ea6c6305c1", default-features = false }
-pallet-revive-uapi = { git = "https://github.com/use-ink/polkadot-sdk.git", rev = "a71ec19a94702ea71767ba5ac97603ea6c6305c1", default-features = false, features = ["unstable-hostfn", "scale"] }
+sp-core = { version = "38.0.0", default-features = false }
+sp-runtime = { version = "43.0.0" }
+sp-weights = { version = "33.0.0", default-features = false }
+pallet-revive-uapi = { version = "0.8.0", default-features = false, features = ["unstable-hostfn", "scale"] }
 
 ink_metadata = { workspace = true }
 ink_env = { workspace = true }
 
 [dev-dependencies]
-ink = { git = "https://github.com/use-ink/ink", tag = "v6.0.0-alpha.4", features = ["unstable-hostfn"], version = "6.0.0-alpha.4" }
+ink = { git = "https://github.com/use-ink/ink", branch = "refactor/dependencies", features = ["unstable-hostfn"], version = "6.0.0-alpha.4" }
 assert_cmd = "2.0.17"
 regex = "1.11.1"
 predicates = "3.1.3"
