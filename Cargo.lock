@@ -1579,6 +1579,7 @@ version = "6.0.0-alpha.4"
 dependencies = [
  "anyhow",
  "contract-metadata",
+ "polkavm-linker 0.29.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1601,7 +1602,7 @@ dependencies = [
  "ink_metadata",
  "itertools 0.14.0",
  "parity-scale-codec",
- "polkavm-linker",
+ "polkavm-linker 0.29.0 (git+https://github.com/paritytech/polkavm.git)",
  "pretty_assertions",
  "regex",
  "rustc_version 0.4.1",
@@ -4572,6 +4573,12 @@ checksum = "a19805789e7bf778ac5855f6fe9350353f6a1697c2aab9bfb6fc7c831be54fad"
 [[package]]
 name = "polkavm-common"
 version = "0.29.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f634b46a6a47a5de381f56d1d8cced9f8640d063b2b1a44b0da6dbef91bbd400"
+
+[[package]]
+name = "polkavm-common"
+version = "0.29.0"
 source = "git+https://github.com/paritytech/polkavm.git#db1df41408242e6a29fd5c0ef658e5b319ef8bb4"
 
 [[package]]
@@ -4639,6 +4646,22 @@ dependencies = [
 [[package]]
 name = "polkavm-linker"
 version = "0.29.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43e01613e9e3e4ebd624aa3a11f1775a5c90b881200c50e054fe13c3ba451f98"
+dependencies = [
+ "dirs",
+ "gimli",
+ "hashbrown 0.14.5",
+ "log",
+ "object",
+ "polkavm-common 0.29.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "regalloc2",
+ "rustc-demangle",
+]
+
+[[package]]
+name = "polkavm-linker"
+version = "0.29.0"
 source = "git+https://github.com/paritytech/polkavm.git#db1df41408242e6a29fd5c0ef658e5b319ef8bb4"
 dependencies = [
  "dirs",
@@ -4646,7 +4669,7 @@ dependencies = [
  "hashbrown 0.14.5",
  "log",
  "object",
- "polkavm-common 0.29.0",
+ "polkavm-common 0.29.0 (git+https://github.com/paritytech/polkavm.git)",
  "regalloc2",
  "rustc-demangle",
 ]

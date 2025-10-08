@@ -28,153 +28,70 @@ pub use contract_metadata::Language;
 /// This function accepts a binary contract as input and employs a set of heuristics
 /// to identify the contract's source language. It currently supports detection of the
 /// ink! and Solidity languages.
-pub fn determine_language(_code: &[u8]) -> Result<Language> {
-    /*
-    // todo
-    if !start_section && module.custom_sections.keys().any(|e| e == &"producers") {
-        return Ok(Language::Solidity)
-    } else if start_section
-        && module
-            .custom_sections
-            .keys()
-            .any(|e| e == &"sourceMappingURL")
-    {
-        return Ok(Language::AssemblyScript)
-    } else if !start_section
-        && (is_ink_function_present(&module)
-            || matches!(module.has_function_name("ink_env"), Ok(true)))
-    {
-        return Ok(Language::Ink)
+///
+/// # Developer Note
+///
+/// Finding a heuristic to distinguish ink! bytecode vs Solidity bytecode is tricky.
+/// This is because the Rust compiler (ink!) compiles to LLVM IR, which is the
+/// compiled to RISC-V. The Parity `resolc` compiler compiles Yul to LLVM IR,
+/// which is then compiled to RISC-V. So in both cases the IR is already LLVM.
+///
+/// The heuristic that we have found to work is that _all_ Solidity binaries always
+/// have these two imports following each other: `seal_return`, `set_immutable_data`.
+/// This is true, even for read-only contracts that never store anything.
+///
+/// For ink!, we found that _all_ binaries have these two imports right after each
+/// other: `seal_return`, `set_storage`. This is also true for read-only contracts.
+///
+/// Note: It is unclear to us at this moment why both languages compile `set_*`
+/// imports into the binary, even if no mutation operations are in the syntax.
+pub fn determine_language(code: &[u8]) -> Result<Language> {
+    let blob = polkavm_linker::ProgramBlob::parse(code[..].into())
+        .expect("cannot parse code blob");
+    let mut found_seal_return: bool = false;
+
+    for import in blob.imports().iter().flatten() {
+        let import = String::from_utf8_lossy(import.as_bytes());
+        if found_seal_return == true && import == "set_storage" {
+            return Ok(Language::Ink)
+        } else if found_seal_return == true && import == "set_immutable_data" {
+            return Ok(Language::Solidity)
+        }
+        if import == "seal_return" {
+            found_seal_return = true;
+        }
     }
-    */
 
     bail!("Language unsupported or unrecognized.")
 }
 
 #[cfg(test)]
 mod tests {
-    /*
-    // todo
+    use super::*;
 
     #[test]
-    fn fails_with_unsupported_language() {
-        let contract = r#"
-        (module
-            (type $none_=>_none (func))
-            (type (;0;) (func (param i32 i32 i32)))
-            (import "env" "memory" (func (;5;) (type 0)))
-            (start $~start)
-            (func $~start (type $none_=>_none))
-            (func (;5;) (type 0))
-        )
-        "#;
-        let code = &wat::parse_str(contract).expect("Invalid wat.");
-        let lang = determine_language(code);
-        assert!(lang.is_err());
-        assert_eq!(
-            lang.unwrap_err().to_string(),
-            "Language unsupported or unrecognized."
-        );
+    fn determines_solidity_language() {
+        for file in std::fs::read_dir("tests/resolc-0.3.0/").unwrap() {
+            let path = file.unwrap().path();
+            let code = std::fs::read(path).unwrap();
+            let lang = determine_language(&code[..]);
+            assert!(
+                matches!(lang, Ok(Language::Solidity)),
+                "Failed to detect Solidity language."
+            );
+        }
     }
 
     #[test]
     fn determines_ink_language() {
-        let contract = r#"
-        (module
-            (type (;0;) (func (param i32 i32 i32)))
-            (type (;1;) (func (result i32)))
-            (type (;2;) (func (param i32 i32)))
-            (import "seal" "foo" (func (;0;) (type 0)))
-            (import "seal0" "value_transferred" (func (;1;) (type 2)))
-            (import "env" "memory" (memory (;0;) 2 16))
-            (func (;2;) (type 2))
-            (func (;3;) (type 1) (result i32)
-            (local i32 i64 i64)
-            global.get 0
-            i32.const 32
-            i32.sub
-            local.tee 0
-            global.set 0
-            local.get 0
-            i64.const 0
-            i64.store offset=8
-            local.get 0
-            i64.const 0
-            i64.store
-            local.get 0
-            i32.const 16
-            i32.store offset=28
-            local.get 0
-            local.get 0
-            i32.const 28
-            i32.add
-            call 1
-            local.get 0
-            i64.load offset=8
-            local.set 1
-            local.get 0
-            i64.load
-            local.set 2
-            local.get 0
-            i32.const 32
-            i32.add
-            global.set 0
-            i32.const 5
-            i32.const 4
-            local.get 1
-            local.get 2
-            i64.or
-            i64.eqz
-            select
-        )
-            (global (;0;) (mut i32) (i32.const 65536))
-        )"#;
-        let code = &wat::parse_str(contract).expect("Invalid wat.");
-        let lang = determine_language(code);
-        assert!(
-            matches!(lang, Ok(Language::Ink)),
-            "Failed to detect Ink! language."
-        );
+        for file in std::fs::read_dir("tests/ink-6.0.0-alpha.4/").unwrap() {
+            let path = file.unwrap().path();
+            let code = std::fs::read(path).unwrap();
+            let lang = determine_language(&code[..]);
+            assert!(
+                matches!(lang, Ok(Language::Ink)),
+                "Failed to detect ink! language."
+            );
+        }
     }
-
-    #[test]
-    fn determines_solidity_language() {
-        let contract = r#"
-        (module
-            (type (;0;) (func (param i32 i32 i32)))
-            (import "env" "memory" (memory (;0;) 16 16))
-            (func (;0;) (type 0))
-            (@custom "producers" "data")
-        )
-        "#;
-        let code = &wat::parse_str(contract).expect("Invalid wat.");
-        let lang = determine_language(code);
-        assert!(
-            matches!(lang, Ok(Language::Solidity)),
-            "Failed to detect Solidity language."
-        );
-    }
-
-    #[test]
-    fn determines_assembly_script_language() {
-        let contract = r#"
-        (module
-            (type $none_=>_none (func))
-            (type (;0;) (func (param i32 i32 i32)))
-            (import "seal" "foo" (func (;0;) (type 0)))
-            (import "env" "memory" (memory $0 2 16))
-            (start $~start)
-            (func $~start (type $none_=>_none))
-            (func (;1;) (type 0))
-            (@custom "sourceMappingURL" "data")
-        )
-        "#;
-        let code = &wat::parse_str(contract).expect("Invalid wat.");
-        let lang = determine_language(code);
-        assert!(
-            matches!(lang, Ok(Language::AssemblyScript)),
-            "Failed to detect AssemblyScript language."
-        );
-    }
-     */
 }
