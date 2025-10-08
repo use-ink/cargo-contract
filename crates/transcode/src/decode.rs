@@ -64,7 +64,7 @@ impl<'a> Decoder<'a> {
 
     pub fn decode(&self, type_id: u32, input: &mut &[u8]) -> Result<Value> {
         let ty = self.registry.resolve(type_id).ok_or_else(|| {
-            anyhow::anyhow!("Failed to resolve type with id `{:?}`", type_id)
+            anyhow::anyhow!("Failed to resolve type with id `{type_id:?}`")
         })?;
         tracing::debug!(
             "Decoding input with type id `{:?}` and definition `{:?}`",
@@ -180,7 +180,7 @@ impl<'a> Decoder<'a> {
             .iter()
             .find(|v| v.index == discriminant)
             .ok_or_else(|| {
-                anyhow::anyhow!("No variant found with discriminant {}", discriminant)
+                anyhow::anyhow!("No variant found with discriminant {discriminant}")
             })?;
 
         let mut named = Vec::new();
@@ -261,8 +261,7 @@ impl<'a> Decoder<'a> {
                 }
                 prim => {
                     Err(anyhow::anyhow!(
-                        "{:?} not supported. Expected unsigned int primitive.",
-                        prim
+                        "{prim:?} not supported. Expected unsigned int primitive."
                     ))
                 }
             }
@@ -270,7 +269,7 @@ impl<'a> Decoder<'a> {
 
         let type_id = compact.type_param.id;
         let ty = self.registry.resolve(type_id).ok_or_else(|| {
-            anyhow::anyhow!("Failed to resolve type with id `{:?}`", type_id)
+            anyhow::anyhow!("Failed to resolve type with id `{type_id:?}`")
         })?;
         match &ty.type_def {
             TypeDef::Primitive(primitive) => decode_compact_primitive(primitive),
@@ -281,8 +280,7 @@ impl<'a> Decoder<'a> {
                         let field_ty =
                             self.registry.resolve(type_id).ok_or_else(|| {
                                 anyhow::anyhow!(
-                                    "Failed to resolve type with id `{:?}`",
-                                    type_id
+                                    "Failed to resolve type with id `{type_id:?}`"
                                 )
                             })?;
                         if let TypeDef::Primitive(primitive) = &field_ty.type_def {

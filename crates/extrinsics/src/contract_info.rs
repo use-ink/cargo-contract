@@ -116,7 +116,7 @@ where
             let raw_account_id = raw_value.as_type::<[u8; 32]>()?;
             let account: C::AccountId = Decode::decode(&mut &raw_account_id[..])
                 .map_err(|err| {
-                    anyhow!("AccountId from `[u8; 32]` deserialization error: {}", err)
+                    anyhow!("AccountId from `[u8; 32]` deserialization error: {err}")
                 })?;
             Ok(account)
         }
@@ -143,7 +143,7 @@ where
         .at(best_block)
         .fetch(&account_info_address)
         .await?
-        .ok_or_else(|| anyhow!("No contract was found for address {:?}", contract))?;
+        .ok_or_else(|| anyhow!("No contract was found for address {contract:?}"))?;
 
     let account_info = account_info_value.as_type::<PrAccountInfo<E::Balance>>()?;
 
@@ -301,7 +301,7 @@ pub async fn fetch_contract_binary<C: Config>(
         .at(best_block)
         .fetch(&pristine_code_address)
         .await?
-        .ok_or_else(|| anyhow!("No contract binary was found for code hash {}", hash))?;
+        .ok_or_else(|| anyhow!("No contract binary was found for code hash {hash}"))?;
     pristine_code
         .as_type::<Vec<u8>>()
         .map_err(|e| anyhow!("Contract binary could not be parsed: {e}"))
@@ -317,7 +317,7 @@ fn parse_contract_address(
         .get(storage_contract_root_key_len..)
         .ok_or(anyhow!("Unexpected storage key size"))?;
     Decode::decode(&mut account)
-        .map_err(|err| anyhow!("H160 deserialization error: {}", err))
+        .map_err(|err| anyhow!("H160 deserialization error: {err}"))
 }
 
 /// Fetch all contract addresses from the storage using the provided client.

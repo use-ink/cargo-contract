@@ -116,9 +116,8 @@ impl VerifySchemaCommand {
         )?;
 
         // 3. Validate and display error if any
-        jsonschema::validate(&schema, &metadata).map_err(|err| {
-            anyhow!(format!("Error during schema validation: {}\n", err))
-        })?;
+        jsonschema::validate(&schema, &metadata)
+            .map_err(|err| anyhow!(format!("Error during schema validation: {err}\n")))?;
 
         Ok(SchemaVerificationResult {
             is_verified: true,

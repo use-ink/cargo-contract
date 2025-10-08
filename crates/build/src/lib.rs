@@ -520,7 +520,7 @@ fn execute_cargo(cargo: duct::Expression) -> Result<()> {
     match cargo.unchecked().run() {
         Ok(out) if out.status.success() => Ok(()),
         Ok(out) => anyhow::bail!(String::from_utf8_lossy(&out.stderr).to_string()),
-        Err(e) => anyhow::bail!("Cannot run `cargo` command: {:?}", e),
+        Err(e) => anyhow::bail!("Cannot run `cargo` command: {e:?}"),
     }
 }
 
@@ -813,7 +813,7 @@ fn local_build(
                     validate_bytecode::parse_linker_error(ink_err_identifier)
                 );
             }
-            bail!("Failed to link polkavm program: {}{}", err, details)
+            bail!("Failed to link polkavm program: {err}{details}")
         }
     };
     fs::write(&crate_metadata.dest_binary, linked)?;

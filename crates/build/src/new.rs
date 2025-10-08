@@ -57,7 +57,7 @@ where
         .map_or(env::current_dir()?, |p| p.as_ref().to_path_buf())
         .join(name);
     if out_dir.join("Cargo.toml").exists() {
-        anyhow::bail!("A Cargo package already exists in {}", name);
+        anyhow::bail!("A Cargo package already exists in {name}");
     }
     if !out_dir.exists() {
         fs::create_dir(&out_dir)?;

@@ -176,7 +176,7 @@ where
             // if a particular code hash was set, this one always takes precedent
             if let Some(code_hash) = self.code_hash {
                 let hash = decode_hex(&code_hash).map_err(|err| {
-                    anyhow!("Could not parse hash from input, input must be a hex String (0x…): {:?}", err)
+                    anyhow!("Could not parse hash from input, input must be a hex String (0x…): {err:?}")
                 })?;
                 Code::Existing(H256::from_slice(hash.as_slice()))
             } else {
@@ -511,7 +511,7 @@ where
                 let object =
                     ErrorVariant::from_dispatch_error(err, &self.client.metadata())?;
                 tracing::info!("Pre-submission dry-run failed. Error: {}", object);
-                Err(anyhow!("Pre-submission dry-run failed. Error: {}", object))
+                Err(anyhow!("Pre-submission dry-run failed. Error: {object}"))
             }
         }
     }

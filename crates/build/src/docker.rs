@@ -142,10 +142,10 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             let args = compose_build_args()?;
 
             let client = Docker::connect_with_socket_defaults().map_err(|e| {
-                anyhow::anyhow!("{}\nDo you have the docker engine installed in path?", e)
+                anyhow::anyhow!("{e}\nDo you have the docker engine installed in path?")
             })?;
             let _ = client.ping().await.map_err(|e| {
-                anyhow::anyhow!("{}\nIs your docker engine up and running?", e)
+                anyhow::anyhow!("{e}\nIs your docker engine up and running?")
             })?;
 
             let image = match image {

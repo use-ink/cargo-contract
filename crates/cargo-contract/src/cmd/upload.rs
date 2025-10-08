@@ -110,7 +110,7 @@ impl UploadCommand {
             .map(|b| parse_balance(&b, &token_metadata))
             .transpose()
             .map_err(|e| {
-                anyhow::anyhow!("Failed to parse storage_deposit_limit option: {}", e)
+                anyhow::anyhow!("Failed to parse storage_deposit_limit option: {e}")
             })?;
         let extrinsic_opts = ExtrinsicOptsBuilder::new(signer)
             .file(self.extrinsic_cli_opts.file.clone())

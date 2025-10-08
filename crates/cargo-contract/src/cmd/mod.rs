@@ -255,7 +255,7 @@ pub fn prompt_confirm_tx<F: FnOnce()>(show_details: F) -> Result<()> {
         // default is 'y'
         "y" | "" => Ok(()),
         "n" => Err(anyhow!("Transaction not submitted")),
-        c => Err(anyhow!("Expected either 'y' or 'n', got '{}'", c)),
+        c => Err(anyhow!("Expected either 'y' or 'n', got '{c}'")),
     }
 }
 
@@ -281,7 +281,7 @@ fn prompt_confirm_mapping<F: FnOnce()>(show_details: F) -> Result<()> {
         // default is 'y'
         "y" | "" => Ok(()),
         "n" => Err(anyhow!("Mapping not intended")),
-        c => Err(anyhow!("Expected either 'y' or 'n', got '{}'", c)),
+        c => Err(anyhow!("Expected either 'y' or 'n', got '{c}'")),
     }
 }
 
@@ -467,7 +467,7 @@ pub fn prompt_confirm_unverifiable_upload(chain: &str) -> Result<()> {
         // default is 'n'
         "y" => Ok(()),
         "n" | "" => Err(anyhow!("Upload cancelled!")),
-        c => Err(anyhow!("Expected either 'y' or 'n', got '{}'", c)),
+        c => Err(anyhow!("Expected either 'y' or 'n', got '{c}'")),
     }
 }
 

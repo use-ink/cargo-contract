@@ -180,11 +180,9 @@ impl TestContractManifest {
             .get_mut("dependencies")
             .ok_or_else(|| anyhow::anyhow!("[dependencies] section not found"))?
             .get_mut(dependency)
-            .ok_or_else(|| anyhow::anyhow!("{} dependency not found", dependency))?
+            .ok_or_else(|| anyhow::anyhow!("{dependency} dependency not found"))?
             .as_table_mut()
-            .ok_or_else(|| {
-                anyhow::anyhow!("{} dependency should be a table", dependency)
-            })?
+            .ok_or_else(|| anyhow::anyhow!("{dependency} dependency should be a table"))?
             .insert("version".into(), value::Value::String(version.into())))
     }
 

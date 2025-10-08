@@ -219,8 +219,7 @@ impl ContractMessageTranscoder {
             (None, Some(m)) => (m.selector(), m.args()),
             (Some(_), Some(_)) => {
                 return Err(anyhow::anyhow!(
-                    "Invalid metadata: both a constructor and message found with name '{}'",
-                    name
+                    "Invalid metadata: both a constructor and message found with name '{name}'"
                 ))
             }
             (None, None) => {
@@ -403,7 +402,7 @@ impl ContractMessageTranscoder {
         data: &mut &[u8],
     ) -> Result<Value> {
         let ctor_spec = self.find_constructor_spec(name).ok_or_else(|| {
-            anyhow::anyhow!("Failed to find constructor spec with name '{}'", name)
+            anyhow::anyhow!("Failed to find constructor spec with name '{name}'")
         })?;
         let return_ty = ctor_spec.return_type().ret_type();
         self.decode(return_ty.ty().id, data)
@@ -411,7 +410,7 @@ impl ContractMessageTranscoder {
 
     pub fn decode_message_return(&self, name: &str, data: &mut &[u8]) -> Result<Value> {
         let msg_spec = self.find_message_spec(name).ok_or_else(|| {
-            anyhow::anyhow!("Failed to find message spec with name '{}'", name)
+            anyhow::anyhow!("Failed to find message spec with name '{name}'")
         })?;
         let return_ty = msg_spec.return_type().ret_type();
         self.decode(return_ty.ty().id, data)
@@ -924,8 +923,7 @@ mod tests {
                 Ok(())
             } else {
                 Err(anyhow::anyhow!(
-                    "Expected a name field hash encoded as Hex value, was {:?}",
-                    name_field
+                    "Expected a name field hash encoded as Hex value, was {name_field:?}"
                 ))
             }
         } else {

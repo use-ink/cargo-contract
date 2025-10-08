@@ -143,7 +143,7 @@ impl CallCommand {
         HashFor<C>: IntoVisitor,
     {
         let contract = parse_account(&self.contract)
-            .map_err(|e| anyhow::anyhow!("Failed to parse contract option: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to parse contract option: {e}"))?;
         let signer = C::Signer::from_str(&self.extrinsic_cli_opts.suri)
             .map_err(|_| anyhow::anyhow!("Failed to parse suri option"))?;
         let chain = self.extrinsic_cli_opts.chain_cli_opts.chain();
@@ -164,10 +164,10 @@ impl CallCommand {
             .map(|b| parse_balance(&b, &token_metadata))
             .transpose()
             .map_err(|e| {
-                anyhow::anyhow!("Failed to parse storage_deposit_limit option: {}", e)
+                anyhow::anyhow!("Failed to parse storage_deposit_limit option: {e}")
             })?;
         let value = parse_balance(&self.value, &token_metadata)
-            .map_err(|e| anyhow::anyhow!("Failed to parse value option: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to parse value option: {e}"))?;
         let extrinsic_opts = ExtrinsicOptsBuilder::new(signer)
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
