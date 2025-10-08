@@ -65,7 +65,6 @@ pub fn determine_language(code: &[u8]) -> Result<Language> {
     bail!("Language unsupported or unrecognized.")
 }
 
-#[cfg(not(windows))]
 #[cfg(test)]
 mod tests {
     use super::*;
