@@ -52,9 +52,9 @@ pub fn determine_language(code: &[u8]) -> Result<Language> {
 
     for import in blob.imports().iter().flatten() {
         let import = String::from_utf8_lossy(import.as_bytes());
-        if found_seal_return == true && import == "set_storage" {
+        if found_seal_return && import == "set_storage" {
             return Ok(Language::Ink)
-        } else if found_seal_return == true && import == "set_immutable_data" {
+        } else if found_seal_return && import == "set_immutable_data" {
             return Ok(Language::Solidity)
         }
         if import == "seal_return" {
