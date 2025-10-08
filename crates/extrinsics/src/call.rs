@@ -304,7 +304,7 @@ where
                             err,
                             &self.client.metadata(),
                         )?;
-                        Err(anyhow!("Pre-submission dry-run failed. Error: {}", object))
+                        Err(anyhow!("Pre-submission dry-run failed. Error: {object}"))
                     }
                 }
             }

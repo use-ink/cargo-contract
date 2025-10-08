@@ -151,7 +151,7 @@ where
         match res {
             Ok(DryRunResult::Success) => Ok(partial_fee_estimation),
             Ok(DryRunResult::DispatchError(err)) => {
-                Err(anyhow::format_err!("dispatch error: {:?}", err))
+                Err(anyhow::format_err!("dispatch error: {err:?}"))
             }
             Ok(DryRunResult::TransactionValidityError) => {
                 // todo seems like an external bug: https://github.com/paritytech/polkadot-sdk/issues/7305

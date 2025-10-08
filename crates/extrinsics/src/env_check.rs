@@ -86,10 +86,7 @@ fn corresponding_type(field_id: &str) -> Result<&'static str> {
         "now" => Ok("Timestamp"),
         "number" => Ok("BlockNumber"),
         _ => {
-            anyhow::bail!(
-                "Function `compare` called with unknown field id `{}`",
-                field_id
-            )
+            anyhow::bail!("Function `compare` called with unknown field id `{field_id}`")
         }
     }
 }
@@ -242,7 +239,7 @@ fn compare_type(
                 .ty()
                 .id
         }
-        _ => anyhow::bail!("Trying to resolve unknown environment type {:?}", type_name),
+        _ => anyhow::bail!("Trying to resolve unknown environment type {type_name:?}"),
     };
     let contract_registry = contract_metadata.registry();
     let tt_def = resolve_type_definition(contract_registry, tt_id)?;
@@ -252,9 +249,7 @@ fn compare_type(
         if let TypeDef::Array(contract_arr) = &tt_def {
             if node_arr.len != contract_arr.len {
                 anyhow::bail!(
-                    "Mismatch in array lengths: {:?} vs {:?}",
-                    node_arr,
-                    contract_arr
+                    "Mismatch in array lengths: {node_arr:?} vs {contract_arr:?}"
                 );
             }
             let contract_arr_type =

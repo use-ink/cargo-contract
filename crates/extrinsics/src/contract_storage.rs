@@ -424,10 +424,7 @@ impl ContractStorageLayout {
                 let root_key_entry = root_key_entries
                     .iter()
                     .find(|e| e.root_key == root_key)
-                    .ok_or(anyhow!(
-                        "Root key {} not found for the RootLayout",
-                        root_key
-                    ))?;
+                    .ok_or(anyhow!("Root key {root_key} not found for the RootLayout"))?;
                 let type_def = registry.resolve(root_key_entry.type_id).ok_or(
                     anyhow!("Type {} not found in the registry", root_key_entry.type_id),
                 )?;
