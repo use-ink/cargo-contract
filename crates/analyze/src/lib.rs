@@ -71,7 +71,7 @@ mod tests {
 
     #[test]
     fn determines_solidity_language() {
-        for file in std::fs::read_dir("tests/resolc-0.3.0/").unwrap() {
+        for file in std::fs::read_dir("contract-binaries/resolc-0.3.0/").unwrap() {
             let path = file.unwrap().path();
             let code = std::fs::read(path).unwrap();
             let lang = determine_language(&code[..]);
@@ -84,7 +84,7 @@ mod tests {
 
     #[test]
     fn determines_ink_language() {
-        for file in std::fs::read_dir("tests/ink-6.0.0-alpha.4/").unwrap() {
+        for file in std::fs::read_dir("contract-binaries/ink-6.0.0-alpha.4/").unwrap() {
             let path = file.unwrap().path();
             let code = std::fs::read(path).unwrap();
             let lang = determine_language(&code[..]);
