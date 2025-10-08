@@ -923,8 +923,7 @@ mod tests {
                 Ok(())
             } else {
                 Err(anyhow::anyhow!(
-                    "Expected a name field hash encoded as Hex value, was {:?}",
-                    name_field
+                    "Expected a name field hash encoded as Hex value, was {name_field:?}"
                 ))
             }
         } else {

@@ -140,9 +140,7 @@ impl ContractsNodeProcess {
             }
             Err(err) => {
                 let err = anyhow::anyhow!(
-                    "Failed to connect to node rpc after {} attempts: {}",
-                    attempts,
-                    err
+                    "Failed to connect to node rpc after {attempts} attempts: {err}"
                 );
                 tracing::error!("{}", err);
                 proc.kill()?;
