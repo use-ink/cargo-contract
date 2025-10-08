@@ -380,7 +380,7 @@ fn validate_toolchain_name(toolchain: &str) -> Result<()> {
     if re.is_match(toolchain) {
         return Ok(());
     }
-    anyhow::bail!("Invalid toolchain name: {}", toolchain)
+    anyhow::bail!("Invalid toolchain name: {toolchain}")
 }
 
 #[cfg(test)]

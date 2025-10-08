@@ -112,14 +112,14 @@ impl RemoveCommand {
             .map(|b| parse_balance(&b, &token_metadata))
             .transpose()
             .map_err(|e| {
-                anyhow::anyhow!("Failed to parse storage_deposit_limit option: {}", e)
+                anyhow::anyhow!("Failed to parse storage_deposit_limit option: {e}")
             })?;
         let code_hash = self
             .code_hash
             .clone()
             .map(|h| parse_code_hash(&h))
             .transpose()
-            .map_err(|e| anyhow::anyhow!("Failed to parse code_hash option: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to parse code_hash option: {e}"))?;
         let extrinsic_opts = ExtrinsicOptsBuilder::new(signer)
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())

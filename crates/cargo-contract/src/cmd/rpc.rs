@@ -51,7 +51,7 @@ impl RpcCommand {
         let result = request.raw_call(&self.method, params).await;
 
         match (result, self.output_json) {
-            (Err(err), false) => Err(anyhow::anyhow!("Method call failed: {}", err))?,
+            (Err(err), false) => Err(anyhow::anyhow!("Method call failed: {err}"))?,
             (Err(err), true) => {
                 Err(anyhow::anyhow!(serde_json::to_string_pretty(
                     &ErrorVariant::from(err)
