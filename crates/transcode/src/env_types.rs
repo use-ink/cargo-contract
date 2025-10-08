@@ -162,9 +162,7 @@ impl CustomTypeEncoder for AccountId {
             }
             Value::String(string) => {
                 AccountId32::from_str(string).map_err(|e| {
-                    anyhow::anyhow!(
-                        "Error parsing AccountId from string '{string}': {e}"
-                    )
+                    anyhow::anyhow!("Error parsing AccountId from string '{string}': {e}")
                 })?
             }
             Value::Hex(hex) => {
@@ -203,9 +201,7 @@ impl CustomTypeEncoder for Hash {
         let h256 = match value {
             Value::Literal(literal) => {
                 primitive_types::H256::from_str(literal).map_err(|e| {
-                    anyhow::anyhow!(
-                        "Error parsing H256 from literal `{literal}`: {e}"
-                    )
+                    anyhow::anyhow!("Error parsing H256 from literal `{literal}`: {e}")
                 })?
             }
             Value::String(string) => {
@@ -248,9 +244,7 @@ impl CustomTypeEncoder for H160 {
         let h160 = match value {
             Value::Literal(literal) => {
                 primitive_types::H160::from_str(literal).map_err(|e| {
-                    anyhow::anyhow!(
-                        "Error parsing H160 from literal `{literal}`: {e}"
-                    )
+                    anyhow::anyhow!("Error parsing H160 from literal `{literal}`: {e}")
                 })?
             }
             Value::String(string) => {
@@ -287,9 +281,7 @@ impl CustomTypeEncoder for U256 {
         let u256 = match value {
             Value::Literal(literal) => {
                 primitive_types::U256::from_str(literal).map_err(|e| {
-                    anyhow::anyhow!(
-                        "Error parsing U256 from literal `{literal}`: {e}"
-                    )
+                    anyhow::anyhow!("Error parsing U256 from literal `{literal}`: {e}")
                 })?
             }
             Value::String(string) => {
@@ -331,9 +323,7 @@ impl CustomTypeEncoder for H256 {
         let h256 = match value {
             Value::Literal(literal) => {
                 primitive_types::H256::from_str(literal).map_err(|e| {
-                    anyhow::anyhow!(
-                        "Error parsing H256 from literal `{literal}`: {e}"
-                    )
+                    anyhow::anyhow!("Error parsing H256 from literal `{literal}`: {e}")
                 })?
             }
             Value::String(string) => {
