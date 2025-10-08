@@ -70,7 +70,7 @@ impl<'a> Encoder<'a> {
         O: Output + Debug,
     {
         let ty = self.registry.resolve(type_id).ok_or_else(|| {
-            anyhow::anyhow!("Failed to resolve type with id '{:?}'", type_id)
+            anyhow::anyhow!("Failed to resolve type with id '{type_id:?}'")
         })?;
 
         tracing::debug!(
@@ -128,14 +128,12 @@ impl<'a> Encoder<'a> {
                         for named_field in named_fields {
                             let field_name = named_field.name();
                             let value = map.get_by_str(field_name).ok_or_else(|| {
-                                anyhow::anyhow!("Missing a field named `{}`", field_name)
+                                anyhow::anyhow!("Missing a field named `{field_name}`")
                             })?;
                             self.encode(named_field.field().ty.id, value, output)
                                 .map_err(|e| {
                                     anyhow::anyhow!(
-                                        "Error encoding field `{}`: {}",
-                                        field_name,
-                                        e
+                                        "Error encoding field `{field_name}`: {e}"
                                     )
                                 })?;
                         }
@@ -162,8 +160,7 @@ impl<'a> Encoder<'a> {
                     self.encode(single_field.ty.id, value, output)
                 } else {
                     Err(anyhow::anyhow!(
-                        "Expected a Map or a Tuple or a single Value for a composite data type, found {:?}",
-                        v
+                        "Expected a Map or a Tuple or a single Value for a composite data type, found {v:?}"
                     ))
                 }
             }
@@ -188,8 +185,7 @@ impl<'a> Encoder<'a> {
                     self.encode(single_field.id, value, output)
                 } else {
                     Err(anyhow::anyhow!(
-                        "Expected a Tuple or a single Value for a tuple data type, found {:?}",
-                        v
+                        "Expected a Tuple or a single Value for a tuple data type, found {v:?}"
                     ))
                 }
             }
@@ -213,14 +209,14 @@ impl<'a> Encoder<'a> {
                     anyhow::anyhow!("Missing enum variant identifier for tuple")
                 })
             }
-            v => Err(anyhow::anyhow!("Invalid enum variant value '{:?}'", v)),
+            v => Err(anyhow::anyhow!("Invalid enum variant value '{v:?}'")),
         }?;
 
         let (index, variant) = variant_def
             .variants
             .iter()
             .find_position(|v| v.name == variant_ident)
-            .ok_or_else(|| anyhow::anyhow!("No variant '{}' found", variant_ident))?;
+            .ok_or_else(|| anyhow::anyhow!("No variant '{variant_ident}' found"))?;
 
         let index: u8 = index
             .try_into()
@@ -255,7 +251,7 @@ impl<'a> Encoder<'a> {
                 }
             }
             value => {
-                return Err(anyhow::anyhow!("{:?} cannot be encoded as an array", value))
+                return Err(anyhow::anyhow!("{value:?} cannot be encoded as an array"))
             }
         }
         Ok(())
@@ -346,8 +342,7 @@ impl<'a> Encoder<'a> {
                     }
                     _ => {
                         Err(anyhow::anyhow!(
-                            "Compact encoding not supported for {:?}",
-                            primitive
+                            "Compact encoding not supported for {primitive:?}"
                         ))
                     }
                 }
@@ -371,8 +366,7 @@ impl<'a> Encoder<'a> {
                         let field_ty =
                             self.registry.resolve(type_id).ok_or_else(|| {
                                 anyhow::anyhow!(
-                                    "Failed to resolve type with id `{:?}`",
-                                    type_id
+                                    "Failed to resolve type with id `{type_id:?}`"
                                 )
                             })?;
                         if let TypeDef::Primitive(primitive) = &field_ty.type_def {
@@ -381,8 +375,7 @@ impl<'a> Encoder<'a> {
                                 Value::Tuple(tuple) => Ok(tuple.values().collect()),
                                 x => {
                                     Err(anyhow::anyhow!(
-                                        "Compact composite value must be a Map or a Tuple. Found {}",
-                                        x
+                                        "Compact composite value must be a Map or a Tuple. Found {x}"
                                     ))
                                 }
                             }?;
@@ -434,9 +427,7 @@ where
         }
         _ => {
             Err(anyhow::anyhow!(
-                "Expected a {} or a String value, got {}",
-                expected,
-                value
+                "Expected a {expected} or a String value, got {value}"
             ))
         }
     }
@@ -478,9 +469,7 @@ where
         }
         _ => {
             Err(anyhow::anyhow!(
-                "Expected a {} or a String value, got {}",
-                expected,
-                value
+                "Expected a {expected} or a String value, got {value}"
             ))
         }
     }?;

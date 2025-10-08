@@ -156,18 +156,14 @@ impl CustomTypeEncoder for AccountId {
             Value::Literal(literal) => {
                 AccountId32::from_str(literal).map_err(|e| {
                     anyhow::anyhow!(
-                        "Error parsing AccountId from literal `{}`: {}",
-                        literal,
-                        e
+                        "Error parsing AccountId from literal `{literal}`: {e}"
                     )
                 })?
             }
             Value::String(string) => {
                 AccountId32::from_str(string).map_err(|e| {
                     anyhow::anyhow!(
-                        "Error parsing AccountId from string '{}': {}",
-                        string,
-                        e
+                        "Error parsing AccountId from string '{string}': {e}"
                     )
                 })?
             }
@@ -208,15 +204,13 @@ impl CustomTypeEncoder for Hash {
             Value::Literal(literal) => {
                 primitive_types::H256::from_str(literal).map_err(|e| {
                     anyhow::anyhow!(
-                        "Error parsing H256 from literal `{}`: {}",
-                        literal,
-                        e
+                        "Error parsing H256 from literal `{literal}`: {e}"
                     )
                 })?
             }
             Value::String(string) => {
                 primitive_types::H256::from_str(string).map_err(|e| {
-                    anyhow::anyhow!("Error parsing H256 from string '{}': {}", string, e)
+                    anyhow::anyhow!("Error parsing H256 from string '{string}': {e}")
                 })?
             }
             Value::Hex(hex) => primitive_types::H256::from_slice(hex.bytes()),
@@ -255,16 +249,14 @@ impl CustomTypeEncoder for H160 {
             Value::Literal(literal) => {
                 primitive_types::H160::from_str(literal).map_err(|e| {
                     anyhow::anyhow!(
-                        "Error parsing H160 from literal `{}`: {}",
-                        literal,
-                        e
+                        "Error parsing H160 from literal `{literal}`: {e}"
                     )
                 })?
             }
             Value::String(string) => {
                 assert_not_shortened_hex(string);
                 primitive_types::H160::from_str(string).map_err(|e| {
-                    anyhow::anyhow!("Error parsing H160 from string '{}': {}", string, e)
+                    anyhow::anyhow!("Error parsing H160 from string '{string}': {e}")
                 })?
             }
             Value::Hex(hex) => primitive_types::H160::from_slice(hex.bytes()),
@@ -296,15 +288,13 @@ impl CustomTypeEncoder for U256 {
             Value::Literal(literal) => {
                 primitive_types::U256::from_str(literal).map_err(|e| {
                     anyhow::anyhow!(
-                        "Error parsing U256 from literal `{}`: {}",
-                        literal,
-                        e
+                        "Error parsing U256 from literal `{literal}`: {e}"
                     )
                 })?
             }
             Value::String(string) => {
                 primitive_types::U256::from_str(string).map_err(|e| {
-                    anyhow::anyhow!("Error parsing U256 from string '{}': {}", string, e)
+                    anyhow::anyhow!("Error parsing U256 from string '{string}': {e}")
                 })?
             }
             Value::UInt(uint128) => {
@@ -342,15 +332,13 @@ impl CustomTypeEncoder for H256 {
             Value::Literal(literal) => {
                 primitive_types::H256::from_str(literal).map_err(|e| {
                     anyhow::anyhow!(
-                        "Error parsing H256 from literal `{}`: {}",
-                        literal,
-                        e
+                        "Error parsing H256 from literal `{literal}`: {e}"
                     )
                 })?
             }
             Value::String(string) => {
                 primitive_types::H256::from_str(string).map_err(|e| {
-                    anyhow::anyhow!("Error parsing H256 from string '{}': {}", string, e)
+                    anyhow::anyhow!("Error parsing H256 from string '{string}': {e}")
                 })?
             }
             Value::Hex(hex) => primitive_types::H256::from_slice(hex.bytes()),

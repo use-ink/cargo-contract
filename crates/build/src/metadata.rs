@@ -398,7 +398,7 @@ fn extended_metadata(
     }
 
     let contract = builder.build().map_err(|err| {
-        anyhow::anyhow!("Invalid contract metadata builder state: {}", err)
+        anyhow::anyhow!("Invalid contract metadata builder state: {err}")
     })?;
 
     // user defined metadata

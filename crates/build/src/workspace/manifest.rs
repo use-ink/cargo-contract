@@ -495,7 +495,7 @@ impl PathRewrite {
         default: &str,
     ) -> Result<()> {
         let table = table_value.as_table_mut().ok_or_else(|| {
-            anyhow::anyhow!("'[{}]' section should be a table", table_section)
+            anyhow::anyhow!("'[{table_section}]' section should be a table")
         })?;
 
         match table.get_mut("path") {
@@ -506,8 +506,7 @@ impl PathRewrite {
                 let default_path = PathBuf::from(default);
                 if !default_path.exists() {
                     anyhow::bail!(
-                        "No path specified, and the default `{}` was not found",
-                        default
+                        "No path specified, and the default `{default}` was not found"
                     )
                 }
                 let path = self.manifest_dir.join(default_path);
@@ -529,7 +528,7 @@ impl PathRewrite {
     ) -> Result<()> {
         let path_str = existing_path
             .as_str()
-            .ok_or_else(|| anyhow::anyhow!("{} should be a string", value_id))?;
+            .ok_or_else(|| anyhow::anyhow!("{value_id} should be a string"))?;
         #[cfg(windows)]
         // On Windows path separators are `\`, hence we need to replace the `/` in
         // e.g. `src/lib.rs`.
@@ -606,7 +605,7 @@ fn merge_workspace_with_crate_dependencies(
         }
 
         let workspace_dependency = workspace_dependencies.get(name).ok_or_else(|| {
-            anyhow::anyhow!("'{}' is not a key in workspace_dependencies", name)
+            anyhow::anyhow!("'{name}' is not a key in workspace_dependencies")
         })?;
         let workspace_dependency = match workspace_dependency {
             toml::Value::Table(table) => table.to_owned(),
@@ -618,7 +617,7 @@ fn merge_workspace_with_crate_dependencies(
             }
             // If the workspace dependency is invalid, we throw an error
             _ => {
-                anyhow::bail!("Invalid workspace dependency for {}", name);
+                anyhow::bail!("Invalid workspace dependency for {name}");
             }
         };
 
