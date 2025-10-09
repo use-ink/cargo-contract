@@ -57,9 +57,11 @@ use contract_build::{
 };
 pub use contract_info::{
     AccountData,
+    CodeInfo,
     ContractInfo,
     TrieId,
     fetch_all_contracts,
+    fetch_code_info,
     fetch_contract_binary,
     fetch_contract_info,
     get_account_data,

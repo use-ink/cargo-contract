@@ -21,6 +21,7 @@ use anyhow::{
 };
 use contract_metadata::byte_str::serialize_as_byte_str;
 use std::fmt::{
+    Debug,
     Display,
     Formatter,
 };
@@ -123,6 +124,38 @@ where
     }
 }
 
+/// Fetch the code info from the storage using the provided client.
+pub async fn fetch_code_info<C: Config, E: Environment>(
+    code_hash: &H256,
+    rpc: &LegacyRpcMethods<C>,
+    client: &OnlineClient<C>,
+) -> Result<CodeInfo<C::AccountId, E::Balance>>
+where
+    HashFor<C>: IntoVisitor,
+    C::AccountId: AsRef<[u8]> + Display + IntoVisitor + Decode + Debug,
+    E::Balance: IntoVisitor + Debug,
+{
+    let best_block = get_best_block(rpc).await?;
+
+    let code_info_address =
+        dynamic("Revive", "CodeInfoOf", vec![Value::from_bytes(code_hash)]);
+    let code_info_value = client
+        .storage()
+        .at(best_block)
+        .fetch(&code_info_address)
+        .await?
+        .ok_or_else(|| anyhow!("No code info was found for hash {:?}", code_hash))?;
+    let code_info = code_info_value.as_type::<CodeInfo<C::AccountId, E::Balance>>()?;
+    Ok(CodeInfo {
+        owner: code_info.owner,
+        deposit: code_info.deposit,
+        refcount: code_info.refcount,
+        code_len: code_info.code_len,
+        code_type: code_info.code_type,
+        behaviour_version: code_info.behaviour_version,
+    })
+}
+
 /// Fetch the contract info from the storage using the provided client.
 pub async fn fetch_contract_info<C: Config, E: Environment>(
     contract: &H160,
@@ -131,8 +164,8 @@ pub async fn fetch_contract_info<C: Config, E: Environment>(
 ) -> Result<ContractInfo<E::Balance>>
 where
     HashFor<C>: IntoVisitor,
-    C::AccountId: AsRef<[u8]> + Display + IntoVisitor + Decode,
-    E::Balance: IntoVisitor,
+    C::AccountId: AsRef<[u8]> + Display + IntoVisitor + Decode + Debug,
+    E::Balance: IntoVisitor + Debug,
 {
     let best_block = get_best_block(rpc).await?;
 
@@ -144,14 +177,12 @@ where
         .fetch(&account_info_address)
         .await?
         .ok_or_else(|| anyhow!("No contract was found for address {contract:?}"))?;
-
     let account_info = account_info_value.as_type::<PrAccountInfo<E::Balance>>()?;
 
     let contract_info = match account_info.account_type {
         AccountType::Contract(contract_info) => contract_info,
         AccountType::Eoa => panic!("Contract address is an EOA!"),
     };
-
     Ok(ContractInfo::<E::Balance> {
         trie_id: contract_info.trie_id.0.into(),
         code_hash: contract_info.code_hash,
@@ -168,9 +199,9 @@ where
 /// (EOA).
 #[derive(DecodeAsType)]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-pub struct PrAccountInfo<E: DecodeAsType> {
+pub struct PrAccountInfo<Balance: Debug + DecodeAsType> {
     /// The type of the account.
-    pub account_type: AccountType<E>,
+    pub account_type: AccountType<Balance>,
 
     // The  amount that was transferred to this account that is less than the
     // NativeToEthRatio, and can be represented in the native currency
@@ -182,20 +213,41 @@ pub struct PrAccountInfo<E: DecodeAsType> {
 /// accounts.
 #[derive(DecodeAsType)]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-pub enum AccountType<E: DecodeAsType> {
+pub enum AccountType<Balance: Debug + DecodeAsType> {
     /// An account that is a contract.
-    Contract(ContractInfo<E>),
+    Contract(PrContractInfo<Balance>),
 
     /// An account that is an externally owned account (EOA).
     Eoa,
 }
 
+/// Copied from `pallet-revive`. Used for deserializing data fetched from a node.
+///
 /// Struct representing contract info, supporting deposit on either the main or secondary
 /// account.
 #[derive(DecodeAsType)]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
 #[derive(Debug, PartialEq, serde::Serialize)]
-pub struct ContractInfo<Balance> {
+pub struct PrContractInfo<Balance: Debug + IntoVisitor> {
+    trie_id: TrieId,
+    code_hash: H256,
+    storage_bytes: u32,
+    storage_items: u32,
+    storage_byte_deposit: Balance,
+    storage_item_deposit: Balance,
+    storage_base_deposit: Balance,
+    immutable_data_len: u32,
+}
+
+/// This is `PrContractInfo` plus the field `code_info`.
+/// We use this internally in `cargo-contract` to track the information.
+///
+/// Struct representing contract info, supporting deposit on either the main or secondary
+/// account.
+#[derive(DecodeAsType)]
+#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
+#[derive(Debug, PartialEq, serde::Serialize)]
+pub struct ContractInfo<Balance: Debug + IntoVisitor> {
     trie_id: TrieId,
     code_hash: H256,
     storage_bytes: u32,
@@ -208,7 +260,7 @@ pub struct ContractInfo<Balance> {
 
 impl<Balance> ContractInfo<Balance>
 where
-    Balance: serde::Serialize + Copy,
+    Balance: serde::Serialize + Copy + IntoVisitor + Debug,
 {
     /// Convert and return contract info in JSON format.
     pub fn to_json(&self) -> Result<String> {
@@ -254,6 +306,56 @@ where
     pub fn immutable_data_len(&self) -> u32 {
         self.immutable_data_len
     }
+}
+
+/// Copied from `pallet-revive`.
+///
+/// Contract code related data, such as:
+///
+/// - owner of the contract, i.e. account uploaded its code,
+/// - storage deposit amount,
+/// - reference count,
+///
+/// It is stored in a separate storage entry to avoid loading the code when not necessary.
+#[derive(DecodeAsType, Eq, PartialEq, Clone, Debug, serde::Serialize)]
+#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
+pub struct CodeInfo<
+    AccountId: Debug + DecodeAsType + IntoVisitor,
+    Balance: Debug + DecodeAsType + IntoVisitor,
+> {
+    /// The account that has uploaded the contract code and hence is allowed to remove
+    /// it.
+    pub owner: AccountId,
+    /// The amount of balance that was deposited by the owner in order to store it
+    /// on-chain.
+    #[codec(compact)]
+    pub deposit: Balance,
+    /// The number of instantiated contracts that use this as their code.
+    #[codec(compact)]
+    pub refcount: u64,
+    /// Length of the code in bytes.
+    pub code_len: u32,
+    /// Bytecode type
+    pub code_type: BytecodeType,
+    /// The behaviour version that this contract operates under.
+    ///
+    /// Whenever any observeable change (with the exception of weights) are made we need
+    /// to make sure that already deployed contracts will not be affected. We do this by
+    /// exposing the old behaviour depending on the set behaviour version of the
+    /// contract.
+    ///
+    /// As of right now this is a reserved field that is always set to 0.
+    pub behaviour_version: u32,
+}
+
+/// Copied from `pallet-revive`.
+#[derive(PartialEq, Eq, Debug, Copy, Clone, DecodeAsType, serde::Serialize)]
+#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
+pub enum BytecodeType {
+    /// The code is a PVM bytecode.
+    Pvm,
+    /// The code is an EVM bytecode.
+    Evm,
 }
 
 /// A contract's child trie id.
@@ -445,12 +547,12 @@ mod tests {
         )
         .expect("the contract info must be decoded");
         let contract_info = contract_info_thunk
-            .as_type::<ContractInfo<<DefaultEnvironment as Environment>::Balance>>()
+            .as_type::<PrContractInfo<<DefaultEnvironment as Environment>::Balance>>()
             .expect("failed");
 
         assert_eq!(
             contract_info,
-            ContractInfo {
+            PrContractInfo {
                 trie_id: contract_info_v16.trie_id.0.into(),
                 code_hash: contract_info_v16.code_hash,
                 storage_bytes: contract_info_v16.storage_bytes,
@@ -459,7 +561,8 @@ mod tests {
                 storage_item_deposit: contract_info_v16.storage_item_deposit,
                 storage_base_deposit: contract_info_v16.storage_base_deposit,
                 immutable_data_len: contract_info_v16.immutable_data_len,
-                //storage_total_deposit: account_data.reserved,
+                // todo
+                // storage_total_deposit: account_data.reserved,
             }
         );
     }

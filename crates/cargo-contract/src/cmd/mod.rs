@@ -100,6 +100,7 @@ use subxt::{
         DefaultExtrinsicParams,
         ExtrinsicParams,
     },
+    ext::scale_decode::IntoVisitor,
     utils::H160,
 };
 
@@ -339,11 +340,19 @@ pub fn print_gas_required_success(gas: Weight) {
 }
 
 /// Display contract information in a formatted way
-pub fn basic_display_format_extended_contract_info<Balance>(
-    info: &ExtendedContractInfo<Balance>,
+pub fn basic_display_format_extended_contract_info<AccountId, Balance>(
+    contract_addr: &H160,
+    info: &ExtendedContractInfo<AccountId, Balance>,
 ) where
-    Balance: Debug,
+    AccountId: Display + serde::Serialize + Debug + IntoVisitor + Clone,
+    Balance: Debug + serde::Serialize + IntoVisitor + Copy,
 {
+    name_value_println!(
+        "Contract Address",
+        format!("{:?}", contract_addr),
+        MAX_KEY_COL_WIDTH
+    );
+    println!("");
     name_value_println!("TrieId", info.trie_id, MAX_KEY_COL_WIDTH);
     name_value_println!(
         "Code Hash",
@@ -388,6 +397,37 @@ pub fn basic_display_format_extended_contract_info<Balance>(
     name_value_println!(
         "Source Language",
         format!("{}", info.source_language),
+        MAX_KEY_COL_WIDTH
+    );
+    println!("");
+    name_value_println!(
+        "Code Owner",
+        format!("{}", info.code_info.owner),
+        MAX_KEY_COL_WIDTH
+    );
+    name_value_println!(
+        "Code Deposit",
+        format!("{}", info.code_info.owner),
+        MAX_KEY_COL_WIDTH
+    );
+    name_value_println!(
+        "Code Refcount",
+        format!("{}", info.code_info.owner),
+        MAX_KEY_COL_WIDTH
+    );
+    name_value_println!(
+        "Code Length",
+        format!("{}", info.code_info.code_len),
+        MAX_KEY_COL_WIDTH
+    );
+    name_value_println!(
+        "Code Type",
+        format!("{:?}", info.code_info.code_type),
+        MAX_KEY_COL_WIDTH
+    );
+    name_value_println!(
+        "Code Behaviour Version",
+        format!("{}", info.code_info.behaviour_version),
         MAX_KEY_COL_WIDTH
     );
 }

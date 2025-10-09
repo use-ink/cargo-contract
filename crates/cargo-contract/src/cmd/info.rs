@@ -25,10 +25,12 @@ use super::{
 use anyhow::Result;
 use contract_analyze::determine_language;
 use contract_extrinsics::{
+    CodeInfo,
     ContractInfo,
     ErrorVariant,
     TrieId,
     fetch_all_contracts,
+    fetch_code_info,
     fetch_contract_binary,
     fetch_contract_info,
     resolve_h160,
@@ -92,7 +94,7 @@ impl InfoCommand {
     pub async fn run<C: Config + Environment>(&self) -> Result<(), ErrorVariant>
     where
         <C as Config>::AccountId:
-            Serialize + Display + IntoVisitor + Decode + AsRef<[u8]> + FromStr,
+            Serialize + Debug + Display + IntoVisitor + Decode + AsRef<[u8]> + FromStr,
         HashFor<C>: IntoVisitor + Display,
         <C as Environment>::Balance: Serialize + Debug + IntoVisitor,
         <<C as Config>::AccountId as FromStr>::Err:
@@ -121,20 +123,21 @@ impl InfoCommand {
         } else {
             // Contract arg shall be always present in this case, it is enforced by
             // clap configuration
-            let contract = self
+            let contract_addr = self
                 .contract
                 .as_ref()
                 .map(|c| parse_addr(c))
                 .transpose()?
                 .expect("Contract argument shall be present");
 
-            let info_to_json =
-                fetch_contract_info::<C, C>(&contract, &rpc, &client).await?;
-
+            let contract_info =
+                fetch_contract_info::<C, C>(&contract_addr, &rpc, &client).await?;
+            let code_info =
+                fetch_code_info::<C, C>(contract_info.code_hash(), &rpc, &client).await?;
             let contract_binary =
-                fetch_contract_binary(&client, &rpc, info_to_json.code_hash()).await?;
+                fetch_contract_binary(&client, &rpc, contract_info.code_hash()).await?;
 
-            let account_id = resolve_h160::<C, C>(&contract, &rpc, &client).await?;
+            let account_id = resolve_h160::<C, C>(&contract_addr, &rpc, &client).await?;
             let deposit_account_data =
                 contract_extrinsics::get_account_data::<C, C>(&account_id, &rpc, &client)
                     .await?;
@@ -154,22 +157,26 @@ impl InfoCommand {
             } else if self.output_json {
                 println!(
                     "{}",
-                    serde_json::to_string_pretty(
-                        &ExtendedContractInfo::<C::Balance>::new(
-                            info_to_json,
-                            &contract_binary,
-                            deposit_account_data
-                        )
-                    )?
+                    serde_json::to_string_pretty(&ExtendedContractInfo::<
+                        <C as Config>::AccountId,
+                        C::Balance,
+                    >::new(
+                        contract_info,
+                        code_info,
+                        &contract_binary,
+                        deposit_account_data
+                    ))?
                 )
             } else {
-                basic_display_format_extended_contract_info(&ExtendedContractInfo::<
-                    C::Balance,
-                >::new(
-                    info_to_json,
-                    &contract_binary,
-                    deposit_account_data,
-                ))
+                basic_display_format_extended_contract_info(
+                    &contract_addr,
+                    &ExtendedContractInfo::<<C as Config>::AccountId, C::Balance>::new(
+                        contract_info,
+                        code_info,
+                        &contract_binary,
+                        deposit_account_data,
+                    ),
+                )
             }
             Ok(())
         }
@@ -177,7 +184,11 @@ impl InfoCommand {
 }
 
 #[derive(serde::Serialize)]
-pub struct ExtendedContractInfo<Balance> {
+pub struct ExtendedContractInfo<AccountId, Balance>
+where
+    AccountId: serde::Serialize + Clone + Display + Debug + IntoVisitor,
+    Balance: serde::Serialize + Copy + Debug + IntoVisitor,
+{
     pub trie_id: TrieId,
     pub code_hash: H256,
     pub storage_bytes: u32,
@@ -189,14 +200,17 @@ pub struct ExtendedContractInfo<Balance> {
 
     pub storage_total_deposit: Balance,
     pub source_language: String,
+    pub code_info: CodeInfo<AccountId, Balance>,
 }
 
-impl<Balance> ExtendedContractInfo<Balance>
+impl<AccountId, Balance> ExtendedContractInfo<AccountId, Balance>
 where
-    Balance: serde::Serialize + Copy,
+    AccountId: serde::Serialize + Clone + Display + Debug + IntoVisitor,
+    Balance: serde::Serialize + Copy + Debug + IntoVisitor,
 {
     pub fn new(
         contract_info: ContractInfo<Balance>,
+        code_info: CodeInfo<AccountId, Balance>,
         code: &[u8],
         deposit_account_data: contract_extrinsics::AccountData<Balance>,
     ) -> Self {
@@ -216,6 +230,7 @@ where
 
             storage_total_deposit: deposit_account_data.reserved,
             source_language: language,
+            code_info,
         }
     }
 }
