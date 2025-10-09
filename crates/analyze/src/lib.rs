@@ -56,12 +56,13 @@ pub fn determine_language(code: &[u8]) -> Result<Language> {
             return Ok(Language::Ink)
         } else if found_seal_return && import == "set_immutable_data" {
             return Ok(Language::Solidity)
+        } else if found_seal_return {
+            bail!("Language unsupported or unrecognized.")
         }
         if import == "seal_return" {
             found_seal_return = true;
         }
     }
-
     bail!("Language unsupported or unrecognized.")
 }
 
