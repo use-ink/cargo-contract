@@ -180,8 +180,8 @@ where
     let account_info = account_info_value.as_type::<PrAccountInfo<E::Balance>>()?;
 
     let contract_info = match account_info.account_type {
-        AccountType::Contract(contract_info) => contract_info,
-        AccountType::Eoa => panic!("Contract address is an EOA!"),
+        PrAccountType::Contract(contract_info) => contract_info,
+        PrAccountType::Eoa => panic!("Contract address is an EOA!"),
     };
     Ok(ContractInfo::<E::Balance> {
         trie_id: contract_info.trie_id.0.into(),
@@ -195,13 +195,15 @@ where
     })
 }
 
+/// Copied from `pallet-revive`.
+///
 /// Represents the account information for a contract or an externally owned account
 /// (EOA).
 #[derive(DecodeAsType)]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
 pub struct PrAccountInfo<Balance: Debug + DecodeAsType> {
     /// The type of the account.
-    pub account_type: AccountType<Balance>,
+    pub account_type: PrAccountType<Balance>,
 
     // The  amount that was transferred to this account that is less than the
     // NativeToEthRatio, and can be represented in the native currency
@@ -209,11 +211,13 @@ pub struct PrAccountInfo<Balance: Debug + DecodeAsType> {
     pub dust: u32,
 }
 
+/// Copied from `pallet-revive`.
+///
 /// The account type is used to distinguish between contracts and externally owned
 /// accounts.
 #[derive(DecodeAsType)]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-pub enum AccountType<Balance: Debug + DecodeAsType> {
+pub enum PrAccountType<Balance: Debug + DecodeAsType> {
     /// An account that is a contract.
     Contract(PrContractInfo<Balance>),
 
