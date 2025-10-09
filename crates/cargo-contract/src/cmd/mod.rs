@@ -352,7 +352,7 @@ pub fn basic_display_format_extended_contract_info<AccountId, Balance>(
         format!("{:?}", contract_addr),
         MAX_KEY_COL_WIDTH
     );
-    println!("");
+    println!();
     name_value_println!("TrieId", info.trie_id, MAX_KEY_COL_WIDTH);
     name_value_println!(
         "Code Hash",
@@ -399,7 +399,7 @@ pub fn basic_display_format_extended_contract_info<AccountId, Balance>(
         format!("{}", info.source_language),
         MAX_KEY_COL_WIDTH
     );
-    println!("");
+    println!();
     name_value_println!(
         "Code Owner",
         format!("{}", info.code_info.owner),
