@@ -336,7 +336,6 @@ impl FromStr for SourceLanguage {
 pub enum Language {
     Ink,
     Solidity,
-    AssemblyScript,
 }
 
 impl Display for Language {
@@ -344,7 +343,6 @@ impl Display for Language {
         match self {
             Self::Ink => write!(f, "ink!"),
             Self::Solidity => write!(f, "Solidity"),
-            Self::AssemblyScript => write!(f, "AssemblyScript"),
         }
     }
 }
@@ -356,7 +354,6 @@ impl FromStr for Language {
         match s {
             "ink!" => Ok(Self::Ink),
             "Solidity" => Ok(Self::Solidity),
-            "AssemblyScript" => Ok(Self::AssemblyScript),
             _ => Err(format!("Invalid language '{s}'")),
         }
     }
