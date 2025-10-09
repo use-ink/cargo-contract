@@ -144,7 +144,7 @@ where
         .at(best_block)
         .fetch(&code_info_address)
         .await?
-        .ok_or_else(|| anyhow!("No code info was found for hash {:?}", code_hash))?;
+        .ok_or_else(|| anyhow!("No code info was found for hash {code_hash:?}"))?;
     let code_info = code_info_value.as_type::<CodeInfo<C::AccountId, E::Balance>>()?;
     Ok(CodeInfo {
         owner: code_info.owner,
