@@ -407,7 +407,7 @@ pub fn basic_display_format_extended_contract_info<AccountId, Balance>(
     );
     name_value_println!(
         "Code Deposit",
-        format!("{}", info.code_info.deposit),
+        format!("{:?}", info.code_info.deposit),
         MAX_KEY_COL_WIDTH
     );
     name_value_println!(
