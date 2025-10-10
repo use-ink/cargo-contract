@@ -11,11 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added more output to `cargo contract info` ‒ [2148](https://github.com/use-ink/cargo-contract/pull/2148)
 
 ### Changed
-- Re-enable `clippy::cast_possible_truncation` lint - [#2138](https://github.com/use-ink/cargo-contract/pull/2138)
+- Re-enable `clippy::cast_possible_truncation` lint ‒ [#2138](https://github.com/use-ink/cargo-contract/pull/2138)
+- Synchronize with `polkadot-sdk/1b1cef306d9ceebf963fd15a04b5c79ee2618bce` ‒ [2675](https://github.com/use-ink/ink/pull/2675)
 
 ### Fixed
 - Support `instantiate --code-hash` ‒ [2136](https://github.com/use-ink/cargo-contract/pull/2136)
-- Properly decode `Address` values inside Vectors - [2137](https://github.com/use-ink/cargo-contract/pull/2137)
+- Properly decode `Address` values inside Vectors ‒ [2137](https://github.com/use-ink/cargo-contract/pull/2137)
 
 ## Version 6.0.0-alpha.4
 
