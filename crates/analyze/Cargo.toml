@@ -16,4 +16,4 @@ include = ["Cargo.toml", "*.rs", "LICENSE"]
 [dependencies]
 contract-metadata = { version = "6.0.0-alpha.4", path = "../metadata" }
 anyhow = "1.0.100"
-polkavm-linker = "0.29.0"
+polkavm-linker = "0.29.1"
