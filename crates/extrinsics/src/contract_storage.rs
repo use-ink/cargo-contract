@@ -15,8 +15,10 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    CodeInfo,
     ContractInfo,
     TrieId,
+    fetch_code_info,
     fetch_contract_info,
     url_to_string,
 };
@@ -54,6 +56,7 @@ use std::{
     collections::BTreeMap,
     fmt::{
         self,
+        Debug,
         Display,
         Formatter,
     },
@@ -74,7 +77,10 @@ use subxt::{
         scale_decode::IntoVisitor,
         subxt_rpcs::client::rpc_params,
     },
-    utils::H160,
+    utils::{
+        H160,
+        H256,
+    },
 };
 
 pub struct ContractStorage<C: Config, E: Environment> {
@@ -84,9 +90,9 @@ pub struct ContractStorage<C: Config, E: Environment> {
 
 impl<C: Config, E: Environment> ContractStorage<C, E>
 where
-    C::AccountId: AsRef<[u8]> + Display + IntoVisitor,
+    C::AccountId: AsRef<[u8]> + Display + IntoVisitor + Debug,
     HashFor<C>: IntoVisitor,
-    E::Balance: IntoVisitor + Serialize,
+    E::Balance: IntoVisitor + Serialize + Debug,
 {
     pub fn new(rpc: ContractStorageRpc<C>) -> Self {
         Self {
@@ -384,10 +390,10 @@ impl ContractStorageCell {
 impl Display for ContractStorageCell {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Mapping(mapping) => mapping.fmt(f),
-            Self::Lazy(lazy) => lazy.fmt(f),
-            Self::StorageVec(storage_vec) => storage_vec.fmt(f),
-            Self::Packed(value) => value.fmt(f),
+            Self::Mapping(mapping) => Display::fmt(&mapping, f),
+            Self::Lazy(lazy) => Display::fmt(&lazy, f),
+            Self::StorageVec(storage_vec) => Display::fmt(&storage_vec, f),
+            Self::Packed(value) => Display::fmt(&value, f),
         }
     }
 }
@@ -617,7 +623,7 @@ pub struct ContractStorageRpc<C: Config> {
 
 impl<C: Config> ContractStorageRpc<C>
 where
-    C::AccountId: AsRef<[u8]> + Display + IntoVisitor,
+    C::AccountId: AsRef<[u8]> + Display + IntoVisitor + Debug,
     HashFor<C>: IntoVisitor,
 {
     /// Create a new instance of the ContractsRpc.
@@ -640,9 +646,21 @@ where
     ) -> Result<ContractInfo<E::Balance>>
     where
         C::AccountId: Decode,
-        E::Balance: IntoVisitor,
+        E::Balance: IntoVisitor + Debug,
     {
         fetch_contract_info::<C, E>(contract, &self.rpc_methods, &self.client).await
+    }
+
+    /// Fetch the code info to access the trie id for querying storage.
+    pub async fn fetch_code_info<E: Environment>(
+        &self,
+        code_hash: &H256,
+    ) -> Result<CodeInfo<C::AccountId, E::Balance>>
+    where
+        C::AccountId: Decode,
+        E::Balance: IntoVisitor + Debug,
+    {
+        fetch_code_info::<C, E>(code_hash, &self.rpc_methods, &self.client).await
     }
 
     /// Fetch the contract storage at the given key.

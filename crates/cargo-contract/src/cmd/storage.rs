@@ -35,7 +35,10 @@ use contract_extrinsics::{
 use ink_env::Environment;
 use serde::Serialize;
 use std::{
-    fmt::Display,
+    fmt::{
+        Debug,
+        Display,
+    },
     path::PathBuf,
     str::FromStr,
 };
@@ -90,8 +93,8 @@ impl StorageCommand {
     where
         <C as Config>::AccountId: Display + IntoVisitor + AsRef<[u8]> + FromStr + Decode,
         <<C as Config>::AccountId as FromStr>::Err:
-            Into<Box<dyn std::error::Error>> + Display,
-        C::Balance: Serialize + IntoVisitor,
+            Into<Box<dyn std::error::Error>> + Display + Debug,
+        C::Balance: Serialize + IntoVisitor + Debug,
         HashFor<C>: IntoVisitor,
     {
         let rpc =
