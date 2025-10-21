@@ -382,16 +382,11 @@ fn exec_cargo_for_onchain_target(
         // to live with duplicated warnings. For the metadata build we can disable
         // warnings.
         let mut rustflags = {
-            let mut common_flags =
-                "-Clinker-plugin-lto\x1f-Clink-arg=-zstack-size=4096".to_string();
-            // Add panic=abort for release builds (not debug mode)
-            if build_mode != &BuildMode::Debug {
-                common_flags.push_str("\x1f-Cpanic=abort");
-            }
+            let common_flags = "-Clinker-plugin-lto\x1f-Clink-arg=-zstack-size=4096";
             if let Some(target_flags) = Target::rustflags() {
                 format!("{common_flags}\x1f{target_flags}")
             } else {
-                common_flags
+                common_flags.to_string()
             }
         };
         // Sets ABI `cfg` flags (if necessary).
