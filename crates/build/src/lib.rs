@@ -320,9 +320,8 @@ impl Abi {
 /// defaults to the current directory.
 ///
 /// Uses the unstable cargo feature [`build-std`](https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#build-std)
-/// to build the standard library with [`panic_immediate_abort`](https://github.com/johnthagen/min-sized-rust#remove-panic-string-formatting-with-panic_immediate_abort)
-/// which reduces the size of the contract binary by not including panic strings and
-/// formatting code.
+/// to build the standard library with `-Cpanic=abort` which reduces the size of the 
+/// contract binary by not including panic strings and formatting code.
 ///
 /// # `Cargo.toml` optimizations
 ///
@@ -366,7 +365,7 @@ fn exec_cargo_for_onchain_target(
             features.push("ink/ink-debug".to_string());
         } else {
             args.push(
-                "-Zbuild-std-features=panic_immediate_abort,compiler-builtins-mem"
+                "-Zbuild-std-features=compiler-builtins-mem"
                     .to_owned(),
             );
         }
@@ -385,11 +384,15 @@ fn exec_cargo_for_onchain_target(
         // to live with duplicated warnings. For the metadata build we can disable
         // warnings.
         let mut rustflags = {
-            let common_flags = "-Clinker-plugin-lto\x1f-Clink-arg=-zstack-size=4096";
+            let mut common_flags = "-Clinker-plugin-lto\x1f-Clink-arg=-zstack-size=4096".to_string();
+            // Add panic=abort for release builds (not debug mode)
+            if build_mode != &BuildMode::Debug {
+                common_flags.push_str("\x1f-Cpanic=abort");
+            }
             if let Some(target_flags) = Target::rustflags() {
                 format!("{common_flags}\x1f{target_flags}")
             } else {
-                common_flags.to_string()
+                common_flags
             }
         };
         // Sets ABI `cfg` flags (if necessary).

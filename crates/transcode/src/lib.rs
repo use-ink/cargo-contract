@@ -568,7 +568,7 @@ mod tests {
                 (
                     32u32,
                     self.env().address(),
-                    self.env().own_code_hash().unwrap(),
+                    self.env().own_code_hash(),
                     //self.env().transferred_value()
                     ink::U256::one(),
                     AccountId::from([0x17; 32]),
@@ -579,7 +579,7 @@ mod tests {
             /*
             pub fn get_complex(&self) -> (ink::H160, ink::H256, ink::U256) {
                 (self.env().address(),
-                self.env().own_code_hash().unwrap(), self.env().transferred_value())
+                self.env().own_code_hash(), self.env().transferred_value())
             }
              */
 

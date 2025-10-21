@@ -3335,7 +3335,7 @@ dependencies = [
 [[package]]
 name = "ink"
 version = "6.0.0-alpha.4"
-source = "git+https://github.com/use-ink/ink?branch=refactor%2Fdependencies#1b2033e399765916dc3e089ae0fe3de1a8d52a57"
+source = "git+https://github.com/use-ink/ink?branch=master#475cecab85a6d21552773ba4988db61f1955d7ba"
 dependencies = [
  "const_format",
  "derive_more 2.0.1",
@@ -3357,7 +3357,7 @@ dependencies = [
 [[package]]
 name = "ink_allocator"
 version = "6.0.0-alpha.4"
-source = "git+https://github.com/use-ink/ink?branch=refactor%2Fdependencies#1b2033e399765916dc3e089ae0fe3de1a8d52a57"
+source = "git+https://github.com/use-ink/ink?branch=master#475cecab85a6d21552773ba4988db61f1955d7ba"
 dependencies = [
  "cfg-if",
 ]
@@ -3365,7 +3365,7 @@ dependencies = [
 [[package]]
 name = "ink_codegen"
 version = "6.0.0-alpha.4"
-source = "git+https://github.com/use-ink/ink?branch=refactor%2Fdependencies#1b2033e399765916dc3e089ae0fe3de1a8d52a57"
+source = "git+https://github.com/use-ink/ink?branch=master#475cecab85a6d21552773ba4988db61f1955d7ba"
 dependencies = [
  "blake2",
  "derive_more 2.0.1",
@@ -3387,7 +3387,7 @@ dependencies = [
 [[package]]
 name = "ink_engine"
 version = "6.0.0-alpha.4"
-source = "git+https://github.com/use-ink/ink?branch=refactor%2Fdependencies#1b2033e399765916dc3e089ae0fe3de1a8d52a57"
+source = "git+https://github.com/use-ink/ink?branch=master#475cecab85a6d21552773ba4988db61f1955d7ba"
 dependencies = [
  "blake2",
  "derive_more 2.0.1",
@@ -3403,7 +3403,7 @@ dependencies = [
 [[package]]
 name = "ink_env"
 version = "6.0.0-alpha.4"
-source = "git+https://github.com/use-ink/ink?branch=refactor%2Fdependencies#1b2033e399765916dc3e089ae0fe3de1a8d52a57"
+source = "git+https://github.com/use-ink/ink?branch=master#475cecab85a6d21552773ba4988db61f1955d7ba"
 dependencies = [
  "blake2",
  "cfg-if",
@@ -3434,7 +3434,7 @@ dependencies = [
 [[package]]
 name = "ink_ir"
 version = "6.0.0-alpha.4"
-source = "git+https://github.com/use-ink/ink?branch=refactor%2Fdependencies#1b2033e399765916dc3e089ae0fe3de1a8d52a57"
+source = "git+https://github.com/use-ink/ink?branch=master#475cecab85a6d21552773ba4988db61f1955d7ba"
 dependencies = [
  "blake2",
  "either",
@@ -3450,7 +3450,7 @@ dependencies = [
 [[package]]
 name = "ink_macro"
 version = "6.0.0-alpha.4"
-source = "git+https://github.com/use-ink/ink?branch=refactor%2Fdependencies#1b2033e399765916dc3e089ae0fe3de1a8d52a57"
+source = "git+https://github.com/use-ink/ink?branch=master#475cecab85a6d21552773ba4988db61f1955d7ba"
 dependencies = [
  "ink_codegen",
  "ink_ir",
@@ -3465,7 +3465,7 @@ dependencies = [
 [[package]]
 name = "ink_metadata"
 version = "6.0.0-alpha.4"
-source = "git+https://github.com/use-ink/ink?branch=refactor%2Fdependencies#1b2033e399765916dc3e089ae0fe3de1a8d52a57"
+source = "git+https://github.com/use-ink/ink?branch=master#475cecab85a6d21552773ba4988db61f1955d7ba"
 dependencies = [
  "derive_more 2.0.1",
  "impl-serde",
@@ -3480,7 +3480,7 @@ dependencies = [
 [[package]]
 name = "ink_prelude"
 version = "6.0.0-alpha.4"
-source = "git+https://github.com/use-ink/ink?branch=refactor%2Fdependencies#1b2033e399765916dc3e089ae0fe3de1a8d52a57"
+source = "git+https://github.com/use-ink/ink?branch=master#475cecab85a6d21552773ba4988db61f1955d7ba"
 dependencies = [
  "cfg-if",
 ]
@@ -3488,7 +3488,7 @@ dependencies = [
 [[package]]
 name = "ink_primitives"
 version = "6.0.0-alpha.4"
-source = "git+https://github.com/use-ink/ink?branch=refactor%2Fdependencies#1b2033e399765916dc3e089ae0fe3de1a8d52a57"
+source = "git+https://github.com/use-ink/ink?branch=master#475cecab85a6d21552773ba4988db61f1955d7ba"
 dependencies = [
  "alloy-sol-types",
  "cfg-if",
@@ -3513,7 +3513,7 @@ dependencies = [
 [[package]]
 name = "ink_storage"
 version = "6.0.0-alpha.4"
-source = "git+https://github.com/use-ink/ink?branch=refactor%2Fdependencies#1b2033e399765916dc3e089ae0fe3de1a8d52a57"
+source = "git+https://github.com/use-ink/ink?branch=master#475cecab85a6d21552773ba4988db61f1955d7ba"
 dependencies = [
  "array-init",
  "cfg-if",
@@ -3531,7 +3531,7 @@ dependencies = [
 [[package]]
 name = "ink_storage_traits"
 version = "6.0.0-alpha.4"
-source = "git+https://github.com/use-ink/ink?branch=refactor%2Fdependencies#1b2033e399765916dc3e089ae0fe3de1a8d52a57"
+source = "git+https://github.com/use-ink/ink?branch=master#475cecab85a6d21552773ba4988db61f1955d7ba"
 dependencies = [
  "ink_metadata",
  "ink_prelude",
