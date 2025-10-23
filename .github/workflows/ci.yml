@@ -260,15 +260,19 @@ jobs:
           components: rust-src
 
       - name: Check Template
-        run: >-
+        env:
+          CARGO_TARGET_DIR: "${{ github.workspace }}/${{ env.CARGO_TARGET_DIR }}"
+        # On Windows, older Powershell versions don't support the `&&` operator
+        run: |
           # The linter requires two crates
           cargo install cargo-dylint dylint-link
-          cargo -vV &&
-          cargo run -- contract --version &&
-          cargo run -- contract new --target-dir ${{ runner.temp }} foobar &&
+          cargo -vV
+          cargo run -- contract --version
+          cargo run -- contract new --target-dir ${{ runner.temp }} foobar
           # Build with linting
-          cargo run -- contract lint --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
-          cargo run -- contract check --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
-          cargo run -- contract build --manifest-path=${{ runner.temp }}/foobar/Cargo.toml --release &&
+          cargo run -- contract lint --manifest-path=${{ runner.temp }}/foobar/Cargo.toml
+          cargo run -- contract check --manifest-path=${{ runner.temp }}/foobar/Cargo.toml
+          cargo run -- contract build --manifest-path=${{ runner.temp }}/foobar/Cargo.toml --release
           # Run tests
-          cargo test --all-features -- --test-threads=1
+          # Note: no `ink-node`, so we don't run E2E tests
+          cargo run -- contract test --manifest-path=${{ runner.temp }}/foobar/Cargo.toml

@@ -59,6 +59,9 @@ generic-array = "=0.14.7"
 [target.'cfg(unix)'.dependencies]
 uzers = "0.12"
 
+[target.'cfg(windows)'.dependencies]
+which = "8.0.0"
+
 [build-dependencies]
 anyhow = "1.0.100"
 walkdir = "2.5.0"
