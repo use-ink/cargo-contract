@@ -43,8 +43,8 @@ tokio = { version = "1.44.2", features = ["net", "macros", "rt-multi-thread"] }
 [dev-dependencies]
 assert_matches = "1.5.0"
 ink = { git = "https://github.com/use-ink/ink", tag = "v6.0.0-alpha.4", features = ["unstable-hostfn"] }
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "1b1cef306d9ceebf963fd15a04b5c79ee2618bce", default-features = false }
-sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "1b1cef306d9ceebf963fd15a04b5c79ee2618bce", default-features = false }
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cbab8ed4be1941420dd25dc81102fb79d8e2a7f0", default-features = false }
+sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cbab8ed4be1941420dd25dc81102fb79d8e2a7f0", default-features = false }
 
 [features]
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata

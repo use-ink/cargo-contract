@@ -23,6 +23,11 @@ use contract_metadata::{
 };
 pub use lint::lint;
 
+// Hotfix for https://github.com/fizyk20/generic-array/issues/158.
+// Can be removed once there is a new release of https://github.com/RustCrypto,
+// from which we use some hashing crates (`sha3`, `sha2`, etc.).
+use generic_array as _;
+
 mod args;
 mod crate_metadata;
 mod docker;

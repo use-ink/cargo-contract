@@ -51,6 +51,11 @@ contract-metadata = { version = "6.0.0-alpha.4", path = "../metadata" }
 ink_metadata = { workspace = true }
 sha3 = "0.10.8"
 
+# Hotfix for https://github.com/fizyk20/generic-array/issues/158.
+# Can be removed once there is a new release of https://github.com/RustCrypto,
+# from which we use some hashing crates (`sha3`, `sha2`, etc.).
+generic-array = "=0.14.7"
+
 [target.'cfg(unix)'.dependencies]
 uzers = "0.12"
 
