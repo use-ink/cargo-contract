@@ -34,10 +34,10 @@ subxt = "0.44.0"
 hex = "0.4.3"
 derivative = "2.2.0"
 
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "1b1cef306d9ceebf963fd15a04b5c79ee2618bce", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "1b1cef306d9ceebf963fd15a04b5c79ee2618bce" }
-sp-weights = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "1b1cef306d9ceebf963fd15a04b5c79ee2618bce", default-features = false }
-pallet-revive-uapi = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "1b1cef306d9ceebf963fd15a04b5c79ee2618bce", default-features = false, features = ["unstable-hostfn", "scale"] }
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cbab8ed4be1941420dd25dc81102fb79d8e2a7f0", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cbab8ed4be1941420dd25dc81102fb79d8e2a7f0" }
+sp-weights = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cbab8ed4be1941420dd25dc81102fb79d8e2a7f0", default-features = false }
+pallet-revive-uapi = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cbab8ed4be1941420dd25dc81102fb79d8e2a7f0", default-features = false, features = ["unstable-hostfn", "scale"] }
 
 ink_metadata = { workspace = true }
 ink_env = { workspace = true }
