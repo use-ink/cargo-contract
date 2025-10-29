@@ -59,29 +59,49 @@ You can always update the `cargo-contract` binary to the latest version by runni
 
 ### Installation using Docker Image
 
-If you prefer to use Docker instead, Parity has a Docker image
-[available on the Docker Hub](https://hub.docker.com/r/paritytech/contracts-ci-linux):
+If you prefer to use Docker instead, a verified and versioned Docker image is available on Docker Hub.
+
+**Official image:** `useink/contracts-verifiable`
+
+This image contains:
+
+- A stable Rust toolchain
+- The wasm32-unknown-unknown target
+- A pinned release of cargo-contract
+- A default entrypoint: `ENTRYPOINT ["cargo", "contract"]`
+
+so you can call subcommands (`new`, `build`, etc.) directly.
 
 ```bash
-# Pull the latest stable image.
-docker pull paritytech/contracts-ci-linux
+# Pull the latest stable image
+docker pull useink/contracts-verifiable:latest
 
-# Create a new contract in your current directory.
-docker run --rm -it -v $(pwd):/sources paritytech/contracts-ci-linux \
-  cargo contract new --target-dir /sources my_contract
+# Create a new contract
+docker run --rm -it \
+  -v $(pwd):/contract \
+  useink/contracts-verifiable:latest \
+  new my_contract
 
-# Build the contract. This will create the contract file under
-# `my_contract/target/ink/my_contract.contract`.
-docker run --rm -it -v $(pwd):/sources paritytech/contracts-ci-linux \
-  cargo contract build --manifest-path=/sources/my_contract/Cargo.toml
+# Build the contract
+docker run --rm -it \
+  -v $(pwd):/contract \
+  useink/contracts-verifiable:latest \
+  build --release --manifest-path=/contract/my_contract/Cargo.toml
 ```
 
-**Windows:** If you use PowerShell, change `$(pwd)` to `${pwd}`.
+The build artifact will appear at: `my_contract/target/ink/my_contract.contract`
 
-```bash
-# Create a new contract in your current directory (in Windows PowerShell).
-docker run --rm -it -v ${pwd}:/sources paritytech/contracts-ci-linux \
-  cargo contract new --target-dir /sources my_contract
+**Windows: ** If you are using PowerShell, change `$(pwd)` to `${pwd}`.
+
+**Open an interactive shell**
+
+If you’d like to inspect the environment or debug builds interactively:
+
+```
+docker run --rm -it \
+  --entrypoint /bin/bash \
+  -v $(pwd):/contract \
+  useink/contracts-verifiable:latest
 ```
 
 ### Verifiable builds
