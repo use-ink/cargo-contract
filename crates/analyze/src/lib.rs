@@ -85,7 +85,7 @@ mod tests {
 
     #[test]
     fn determines_ink_language() {
-        for file in std::fs::read_dir("contract-binaries/ink-6.0.0-alpha.4/").unwrap() {
+        for file in std::fs::read_dir("contract-binaries/ink-6.0.0-beta/").unwrap() {
             let path = file.unwrap().path();
             let code = std::fs::read(path).unwrap();
             let lang = determine_language(&code[..]);

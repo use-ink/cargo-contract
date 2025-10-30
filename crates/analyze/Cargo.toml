@@ -1,6 +1,6 @@
 [package]
 name = "contract-analyze"
-version = "6.0.0-alpha.4"
+version = "6.0.0-beta"
 authors = ["Use Ink <ink@use.ink>"]
 edition = "2024"
 
@@ -14,6 +14,6 @@ keywords = ["polkavm", "ink", "riscv", "blockchain", "edsl"]
 include = ["Cargo.toml", "*.rs", "LICENSE"]
 
 [dependencies]
-contract-metadata = { version = "6.0.0-alpha.4", path = "../metadata" }
+contract-metadata = { version = "6.0.0-beta", path = "../metadata" }
 anyhow = "1.0.100"
 polkavm-linker = "0.29.0"

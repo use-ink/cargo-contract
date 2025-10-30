@@ -1232,7 +1232,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-contract"
-version = "6.0.0-alpha.4"
+version = "6.0.0-beta"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -1575,7 +1575,7 @@ checksum = "7c74b8349d32d297c9134b8c88677813a227df8f779daa29bfc29c183fe3dca6"
 
 [[package]]
 name = "contract-analyze"
-version = "6.0.0-alpha.4"
+version = "6.0.0-beta"
 dependencies = [
  "anyhow",
  "contract-metadata",
@@ -1584,7 +1584,7 @@ dependencies = [
 
 [[package]]
 name = "contract-build"
-version = "6.0.0-alpha.4"
+version = "6.0.0-beta"
 dependencies = [
  "alloy-json-abi",
  "anyhow",
@@ -1627,7 +1627,7 @@ dependencies = [
 
 [[package]]
 name = "contract-extrinsics"
-version = "6.0.0-alpha.4"
+version = "6.0.0-beta"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -1664,7 +1664,7 @@ dependencies = [
 
 [[package]]
 name = "contract-metadata"
-version = "6.0.0-alpha.4"
+version = "6.0.0-beta"
 dependencies = [
  "anyhow",
  "impl-serde",
@@ -1677,7 +1677,7 @@ dependencies = [
 
 [[package]]
 name = "contract-transcode"
-version = "6.0.0-alpha.4"
+version = "6.0.0-beta"
 dependencies = [
  "anyhow",
  "assert_matches",
