@@ -77,5 +77,5 @@ std = []
 test-ci-only = []
 
 # Enable this to execute tests which depend on a locally running contracts enabed chain
-# e.g.https://github.com/paritytech/substrate-contracts-node
+# e.g.https://github.com/use-ink/ink-node
 integration-tests = []
