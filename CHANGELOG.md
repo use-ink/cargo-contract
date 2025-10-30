@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]
 
+## Version 6.0.0-beta
+
 ### Added
 - Heuristic to distinguish ink! vs. Solidity contracts on-chain ‒ [2147](https://github.com/use-ink/cargo-contract/pull/2147)
 - Added more output to `cargo contract info` ‒ [2148](https://github.com/use-ink/cargo-contract/pull/2148)
