@@ -49,12 +49,12 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread", "net"] }
 subxt = { version = "0.44.0" }
 hex = "0.4.3"
 
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cbab8ed4be1941420dd25dc81102fb79d8e2a7f0", default-features = false }
-sp-weights = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cbab8ed4be1941420dd25dc81102fb79d8e2a7f0", default-features = false }
+sp-core = { version = "38.0.0", default-features = false }
+sp-weights = { version = "33.0.0", default-features = false }
 
 [build-dependencies]
-anyhow = "1.0.100"
-substrate-build-script-utils = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cbab8ed4be1941420dd25dc81102fb79d8e2a7f0", default-features = false }
+anyhow = "1.0.95"
+substrate-build-script-utils = { version = "11.0.0", default-features = false }
 current_platform = "0.2.0"
 which = "8.0.0"
 
@@ -63,7 +63,7 @@ assert_cmd = "2.0.17"
 regex = "1.11.1"
 predicates = "3.1.3"
 tempfile = "3.23.0"
-sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cbab8ed4be1941420dd25dc81102fb79d8e2a7f0", default-features = false }
+sp-keyring = { version = "43.0.0", default-features = false }
 
 [features]
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata

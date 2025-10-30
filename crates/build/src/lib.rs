@@ -883,7 +883,7 @@ fn h256_hash(code: &[u8]) -> [u8; 32] {
         Keccak256,
     };
     let hash = Keccak256::digest(code);
-    let sl = hash.as_slice();
+    let sl: &[u8] = hash.as_ref();
     assert!(sl.len() == 32, "expected length of 32");
     let mut arr = [0u8; 32];
     arr.copy_from_slice(sl);
