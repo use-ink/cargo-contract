@@ -1,6 +1,6 @@
 [package]
 name = "contract-metadata"
-version = "6.0.0-alpha.4"
+version = "6.0.0-beta"
 authors = ["Use Ink <ink@use.ink>"]
 edition = "2024"
 
@@ -8,7 +8,7 @@ license = "Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/use-ink/cargo-contract"
 documentation = "https://docs.rs/contract-metadata"
-homepage = "https://www.substrate.io/"
+homepage = "https://use.ink/"
 description = "Library defining metadata for smart contracts on substrate"
 keywords = ["polkavm", "ink", "riscv", "blockchain", "edsl"]
 include = ["Cargo.toml", "*.rs", "LICENSE", "compatibility_list.json"]

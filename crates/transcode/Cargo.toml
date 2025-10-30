@@ -1,6 +1,6 @@
 [package]
 name = "contract-transcode"
-version = "6.0.0-alpha.4"
+version = "6.0.0-beta"
 authors = ["Use Ink <ink@use.ink>"]
 edition = "2024"
 
@@ -8,7 +8,7 @@ license = "Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/use-ink/cargo-contract"
 documentation = "https://docs.rs/contract-transcode"
-homepage = "https://www.substrate.io/"
+homepage = "https://use.ink/"
 description = "Library encoding calls for smart contracts on substrate"
 keywords = ["polkavm", "ink", "riscv", "blockchain", "edsl"]
 include = ["Cargo.toml", "*.rs", "LICENSE"]
@@ -20,7 +20,7 @@ path = "src/lib.rs"
 anyhow = "1.0.100"
 base58 = { version = "0.2.0" }
 blake2 = { version = "0.10.6", default-features = false }
-contract-metadata = { version = "6.0.0-alpha.4", path = "../metadata" }
+contract-metadata = { version = "6.0.0-beta", path = "../metadata" }
 escape8259 = "0.5.2"
 hex = "0.4.3"
 indexmap = "2.10.0"

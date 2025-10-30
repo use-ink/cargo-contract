@@ -1,6 +1,7 @@
 # Contract Extrinsics
 
-Defines the extrinsics for smart contracts targeting [substrate](https://github.com/paritytech/substrate).
+Defines the extrinsics for smart contracts targeting the [`pallet-revive`](https://github.com/paritytech/polkadot-sdk/blob/master/substrate/frame/revive/) of
+[Polkadot SDK](https://github.com/paritytech/polkadot-sdk).
 
 Currently part of [`cargo-contract`](https://github.com/use-ink/cargo-contract), the build tool for smart
  contracts written in [ink!](https://github.com/use-ink/ink).
@@ -55,7 +56,7 @@ that the extrinsic needs to be executed on chain.
 
 ### `upload`
 
-Upload the contract binary to the target chain. Invokes the [`upload_code`](https://github.com/paritytech/substrate/blob/master/frame/contracts/src/lib.rs#L509)
+Upload the contract binary to the target chain. Invokes the [`upload_code`](https://github.com/paritytech/polkadot-sdk/blob/master/substrate/frame/revive/src/lib.rs#L1353)
 dispatchable.
 
 e.g. `cargo contract upload --suri //Alice`
@@ -65,9 +66,9 @@ Assumes that `cargo contract build` has already been run to produce the contract
 ### `instantiate`
 
 Create an instance of a contract on chain. If the code has already been uploaded via `upload`, specify the resulting
-`--code-hash` which will result in a call to [`instantiate`](https://github.com/paritytech/substrate/blob/master/frame/contracts/src/lib.rs#L460).
+`--code-hash` which will result in a call to [`instantiate`](https://github.com/paritytech/polkadot-sdk/blob/master/substrate/frame/revive/src/lib.rs#L1091).
 If no `--code-hash` is specified it will attempt to both upload the code and instantiate via the
-[`instantiate_with_code`](https://github.com/paritytech/substrate/blob/master/frame/contracts/src/lib.rs#L419)
+[`instantiate_with_code`](https://github.com/paritytech/polkadot-sdk/blob/master/substrate/frame/revive/src/lib.rs#L11560)
 dispatchable.
 
 e.g.
@@ -85,7 +86,7 @@ cargo contract instantiate \
 
 ### `call`
 
-Invoke a message on an instance of a contract via the [`call`](https://github.com/paritytech/substrate/blob/master/frame/contracts/src/lib.rs#L359)
+Invoke a message on an instance of a contract via the [`call`](https://github.com/paritytech/polkadot-sdk/blob/master/substrate/frame/revive/src/lib.rs#L1156)
 dispatchable.
 
 e.g.
@@ -103,7 +104,7 @@ cargo contract call \
 
 ### `remove`
 
-Remove the contract binary from the target chain. Invokes the [`remove_code`](https://github.com/paritytech/substrate/blob/master/frame/contracts/src/lib.rs#L581)
+Remove the contract binary from the target chain. Invokes the [`remove_code`](https://github.com/paritytech/polkadot-sdk/blob/master/substrate/frame/revive/src/lib.rs#L1368)
 dispatchable.
 
 e.g. `cargo contract remove --suri //Alice`

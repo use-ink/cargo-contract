@@ -1,6 +1,6 @@
 [package]
 name = "contract-extrinsics"
-version = "6.0.0-alpha.4"
+version = "6.0.0-beta"
 authors = ["Use Ink <ink@use.ink>"]
 edition = "2024"
 rust-version.workspace = true
@@ -9,15 +9,15 @@ license = "Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/use-ink/cargo-contract"
 documentation = "https://docs.rs/contract-extrinsics"
-homepage = "https://www.substrate.io/"
+homepage = "https://use.ink/"
 description = "Library defining extrinsics for smart contracts on polkadot-sdk"
 keywords = ["polkavm", "ink", "riscv", "blockchain", "edsl"]
 include = ["Cargo.toml", "*.rs", "LICENSE"]
 
 [dependencies]
-contract-build = { version = "6.0.0-alpha.4", path = "../build" }
-contract-metadata = { version = "6.0.0-alpha.4", path = "../metadata" }
-contract-transcode = { version = "6.0.0-alpha.4", path = "../transcode" }
+contract-build = { version = "6.0.0-beta", path = "../build" }
+contract-metadata = { version = "6.0.0-beta", path = "../metadata" }
+contract-transcode = { version = "6.0.0-beta", path = "../transcode" }
 
 anyhow = "1.0.100"
 itertools = { version = "0.14", default-features = false }

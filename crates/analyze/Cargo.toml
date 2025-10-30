@@ -1,6 +1,6 @@
 [package]
 name = "contract-analyze"
-version = "6.0.0-alpha.4"
+version = "6.0.0-beta"
 authors = ["Use Ink <ink@use.ink>"]
 edition = "2024"
 
@@ -8,12 +8,12 @@ license = "Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/use-ink/cargo-contract"
 documentation = "https://docs.rs/contract-analyze"
-homepage = "https://www.substrate.io/"
+homepage = "https://use.ink/"
 description = "Library determining source language for smart contracts on substrate"
 keywords = ["polkavm", "ink", "riscv", "blockchain", "edsl"]
 include = ["Cargo.toml", "*.rs", "LICENSE"]
 
 [dependencies]
-contract-metadata = { version = "6.0.0-alpha.4", path = "../metadata" }
+contract-metadata = { version = "6.0.0-beta", path = "../metadata" }
 anyhow = "1.0.100"
 polkavm-linker = "0.29.0"
