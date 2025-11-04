@@ -17,7 +17,7 @@ include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "tem
 regex = "1"
 anyhow = "1.0.100"
 blake2 = "0.10.6"
-cargo_metadata = "0.22.0"
+cargo_metadata = "0.23.0"
 colored = "3.0.0"
 clap = { version = "4.5.51", features = ["derive", "env"] }
 duct = "1.1.0"
