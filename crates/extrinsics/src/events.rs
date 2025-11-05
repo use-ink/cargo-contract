@@ -30,6 +30,7 @@ use contract_transcode::{
 
 use anyhow::Result;
 use ink_env::Environment;
+use scale::Encode;
 use scale_info::form::PortableForm;
 use std::{
     fmt::{
@@ -42,7 +43,6 @@ use subxt::{
     self,
     Config,
     blocks::ExtrinsicEvents,
-    config::HashFor,
     events::StaticEvent,
     ext::{
         scale_decode::{
@@ -181,25 +181,66 @@ impl DisplayEvents {
                 fields: vec![],
             };
 
+            // For ContractEmitted events, decode to get the event signature topic and
+            // data
+            let contract_emitted = if <ContractEmitted as StaticEvent>::is_event(
+                event.pallet_name(),
+                event.variant_name(),
+            ) {
+                event.as_event::<ContractEmitted>().ok().flatten()
+            } else {
+                None
+            };
+
             let event_data = &mut event.field_bytes();
-            let event_sig_topic = event.topics().iter().next();
             let mut unnamed_field_name = 0;
             for field_metadata in event_fields {
-                if <ContractEmitted as StaticEvent>::is_event(
-                    event.pallet_name(),
-                    event.variant_name(),
-                ) && (field_metadata.name == Some("data".to_string())
-                    || field_metadata.name == Some("topics".to_string()))
-                {
-                    tracing::debug!("event data: {:?}", hex::encode(&event_data));
-                    let field = contract_event_vec_field::<C>(
-                        transcoder,
-                        field_metadata,
-                        event_sig_topic,
-                        event_data,
-                        field_metadata.name.as_ref().expect("must exist"),
-                    )?;
-                    event_entry.fields.push(field);
+                if let Some(ref ce) = contract_emitted {
+                    if field_metadata.name == Some("data".to_string()) {
+                        // Decode the contract event data using the transcoder.
+                        // The transcoder expects the data to be prefixed with its length
+                        // as Compact<u32>.
+                        let mut encoded_data =
+                            scale::Compact(ce.data.len() as u32).encode();
+                        encoded_data.extend_from_slice(&ce.data);
+                        let mut data_slice = encoded_data.as_slice();
+                        let field = contract_event_vec_field::<C>(
+                            transcoder,
+                            field_metadata,
+                            ce.topics.first(),
+                            &mut data_slice,
+                            field_metadata.name.as_ref().expect("must exist"),
+                        )?;
+                        event_entry.fields.push(field);
+                    } else if field_metadata.name == Some("topics".to_string()) {
+                        // Skip the topics field or display it as hex
+                        // Topics are already used for event signature matching
+                        continue;
+                    } else {
+                        // Non-data/topics fields in ContractEmitted (e.g., contract
+                        // address)
+                        let field_name = field_metadata
+                            .name
+                            .as_ref()
+                            .map(|s| s.to_string())
+                            .unwrap_or_else(|| {
+                                let name = unnamed_field_name.to_string();
+                                unnamed_field_name += 1;
+                                name
+                            });
+
+                        let decoded_field = events_transcoder.decode(
+                            subxt_metadata.types(),
+                            field_metadata.ty.id,
+                            event_data,
+                        )?;
+                        let field = Field::new(
+                            field_name,
+                            decoded_field,
+                            field_metadata.type_name.as_ref().map(|s| s.to_string()),
+                        );
+                        event_entry.fields.push(field);
+                    }
                 } else {
                     let field_name = field_metadata
                         .name
@@ -310,7 +351,7 @@ impl DisplayEvents {
 fn contract_event_vec_field<C: Config>(
     transcoder: Option<&ContractMessageTranscoder>,
     field_metadata: &scale_info::Field<PortableForm>,
-    event_sig_topic: Option<&HashFor<C>>,
+    event_sig_topic: Option<&H256>,
     event_data: &mut &[u8],
     field_name: &String,
 ) -> Result<Field> {
@@ -338,4 +379,69 @@ fn contract_event_vec_field<C: Config>(
         event_value,
         field_metadata.type_name.as_ref().map(|s| s.to_string()),
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Verify that without transcoder, events show as hex.
+    #[test]
+    fn test_contract_event_without_transcoder_returns_hex() {
+        use scale_info::{
+            Field as ScaleField,
+            TypeInfo,
+            meta_type,
+        };
+
+        // Create mock field metadata
+        let field_meta = ScaleField::new(
+            Some("data".to_string()),
+            meta_type::<Vec<u8>>(),
+            Some("Vec<u8>".to_string()),
+            vec![],
+            vec![],
+        );
+
+        // Sample event data (would normally be SCALE-encoded event fields)
+        let event_data_bytes = vec![0x04, 0x00, 0x01, 0x02, 0x03];
+        let mut event_data = event_data_bytes.as_slice();
+
+        // When transcoder is None, the result should be hex
+        let result = contract_event_vec_field::<subxt::PolkadotConfig>(
+            None, // <- BUG: No transcoder passed
+            &field_meta,
+            None,
+            &mut event_data,
+            &"data".to_string(),
+        );
+
+        assert!(result.is_ok(), "Should not error");
+        let field = result.unwrap();
+
+        // Verify the bug: value should be Hex, not decoded
+        match field.value {
+            Value::Hex(_) => {
+                // Bug confirmed: without transcoder, events are shown as hex
+            }
+            _ => {
+                panic!("Bug not present: Expected Hex value when transcoder is None");
+            }
+        }
+    }
+
+    /// Verify that with transcoder, events are decoded.
+    #[test]
+    #[ignore] // Ignore until we can set up a proper test with real contract metadata
+    fn test_contract_event_with_transcoder_returns_decoded_value() {
+        // This test requires:
+        // 1. Real contract metadata with event definitions
+        // 2. A ContractMessageTranscoder instance
+        // 3. Properly encoded event data
+        //
+        // When transcoder is Some(...), the result should be decoded event fields
+        // not raw hex.
+        //
+        // This will be tested via integration test with real contract.
+    }
 }
