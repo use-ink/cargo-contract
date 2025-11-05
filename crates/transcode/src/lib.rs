@@ -108,21 +108,50 @@ mod util;
 
 pub use self::{
     account_id::AccountId32,
-    scon::{Hex, Map, Tuple, Value},
-    transcoder::{Transcoder, TranscoderBuilder},
+    scon::{
+        Hex,
+        Map,
+        Tuple,
+        Value,
+    },
+    transcoder::{
+        Transcoder,
+        TranscoderBuilder,
+    },
 };
 
-use anyhow::{Context, Result};
+use anyhow::{
+    Context,
+    Result,
+};
 pub use ink_metadata;
-use ink_metadata::{ConstructorSpec, InkProject, MessageSpec};
+use ink_metadata::{
+    ConstructorSpec,
+    InkProject,
+    MessageSpec,
+};
 use itertools::Itertools;
 use regex::Regex;
-use scale::{Compact, Decode, Input};
-use scale_info::{
-    Field, PortableRegistry, TypeDef, TypeDefPrimitive,
-    form::{Form, PortableForm},
+use scale::{
+    Compact,
+    Decode,
+    Input,
 };
-use std::{cmp::Ordering, fmt::Debug, path::Path};
+use scale_info::{
+    Field,
+    PortableRegistry,
+    TypeDef,
+    TypeDefPrimitive,
+    form::{
+        Form,
+        PortableForm,
+    },
+};
+use std::{
+    cmp::Ordering,
+    fmt::Debug,
+    path::Path,
+};
 
 /// Encode strings to SCALE encoded smart contract calls.
 /// Decode SCALE encoded smart contract events and return values into `Value` objects.
@@ -511,13 +540,15 @@ impl CompositeTypeFields {
         } else if fields.iter().all(|f| f.name.is_some()) {
             let fields = fields
                 .iter()
-                .map(|field| CompositeTypeNamedField {
-                    name: field
-                        .name
-                        .as_ref()
-                        .expect("All fields have a name; qed")
-                        .to_owned(),
-                    field: field.clone(),
+                .map(|field| {
+                    CompositeTypeNamedField {
+                        name: field
+                            .name
+                            .as_ref()
+                            .expect("All fields have a name; qed")
+                            .to_owned(),
+                        field: field.clone(),
+                    }
                 })
                 .collect();
             Ok(Self::Named(fields))
@@ -535,7 +566,10 @@ impl CompositeTypeFields {
 mod tests {
     use super::*;
     use crate::scon::Hex;
-    use ink_env::{DefaultEnvironment, Environment};
+    use ink_env::{
+        DefaultEnvironment,
+        Environment,
+    };
     use primitive_types::H256;
     use scale::Encode;
     use scon::Value;
