@@ -108,47 +108,21 @@ mod util;
 
 pub use self::{
     account_id::AccountId32,
-    scon::{
-        Hex,
-        Map,
-        Tuple,
-        Value,
-    },
-    transcoder::{
-        Transcoder,
-        TranscoderBuilder,
-    },
+    scon::{Hex, Map, Tuple, Value},
+    transcoder::{Transcoder, TranscoderBuilder},
 };
 
-use anyhow::{
-    Context,
-    Result,
-};
+use anyhow::{Context, Result};
 pub use ink_metadata;
-use ink_metadata::{
-    ConstructorSpec,
-    InkProject,
-    MessageSpec,
-};
+use ink_metadata::{ConstructorSpec, InkProject, MessageSpec};
 use itertools::Itertools;
 use regex::Regex;
-use scale::{
-    Compact,
-    Decode,
-    Input,
-};
+use scale::{Compact, Decode, Input};
 use scale_info::{
-    Field,
-    form::{
-        Form,
-        PortableForm,
-    },
+    Field, PortableRegistry, TypeDef, TypeDefPrimitive,
+    form::{Form, PortableForm},
 };
-use std::{
-    cmp::Ordering,
-    fmt::Debug,
-    path::Path,
-};
+use std::{cmp::Ordering, fmt::Debug, path::Path};
 
 /// Encode strings to SCALE encoded smart contract calls.
 /// Decode SCALE encoded smart contract events and return values into `Value` objects.
@@ -173,6 +147,46 @@ where
         .collect();
     candidates.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(Ordering::Equal));
     candidates.into_iter().map(|(_, pv)| pv).collect()
+}
+
+/// Parse an argument with type hints from the contract metadata.
+///
+/// This function enables intuitive argument parsing by using type information
+/// from the contract metadata. For String types, it accepts unquoted strings
+/// directly, while maintaining backward compatibility with SCON quoted strings.
+///
+/// # Examples
+///
+/// For a String parameter:
+/// - `Alice` → parsed as string "Alice" (new behavior)
+/// - `"Alice"` → parsed as string "Alice" (backward compatible)
+/// - `my string` → parsed as string "my string" (with spaces)
+///
+/// For other types, standard SCON parsing applies:
+/// - `true` → boolean
+/// - `42` → integer
+/// - `[1, 2, 3]` → array
+fn parse_with_type_hint(
+    arg: &str,
+    type_id: u32,
+    registry: &PortableRegistry,
+) -> Result<Value> {
+    // Get the expected type from metadata
+    let ty = registry
+        .resolve(type_id)
+        .ok_or_else(|| anyhow::anyhow!("Type {} not found in registry", type_id))?;
+    // For String types, provide special handling
+    if matches!(&ty.type_def, TypeDef::Primitive(TypeDefPrimitive::Str)) {
+        // If the argument is already properly quoted for SCON, parse it normally
+        if arg.starts_with('"') && arg.ends_with('"') {
+            return scon::parse_value(arg);
+        }
+        // Otherwise, treat the entire argument as a plain string.
+        // This allows users to pass strings without explicit quotes.
+        return Ok(Value::String(arg.to_string()));
+    }
+    // For all other types, use standard SCON parsing
+    scon::parse_value(arg)
 }
 
 impl ContractMessageTranscoder {
@@ -220,7 +234,7 @@ impl ContractMessageTranscoder {
             (Some(_), Some(_)) => {
                 return Err(anyhow::anyhow!(
                     "Invalid metadata: both a constructor and message found with name '{name}'"
-                ))
+                ));
             }
             (None, None) => {
                 let constructors = self.constructors().map(|c| c.label());
@@ -235,7 +249,7 @@ impl ContractMessageTranscoder {
 
                 return Err(anyhow::anyhow!(
                     "No constructor or message with the name '{name}' found.\n{help_txt}",
-                ))
+                ));
             }
         };
 
@@ -251,7 +265,15 @@ impl ContractMessageTranscoder {
         let mut encoded = selector.to_bytes().to_vec();
         for (spec, arg) in spec_args.iter().zip(args) {
             assert_not_shortened_hex(arg.as_ref());
-            let value = scon::parse_value(arg.as_ref())?;
+
+            // Use context-aware parsing with type hints from metadata.
+            // This allows intuitive string arguments without explicit quotes.
+            let value = parse_with_type_hint(
+                arg.as_ref(),
+                spec.ty().ty().id,
+                self.metadata.registry(),
+            )?;
+
             self.transcoder.encode(
                 self.metadata.registry(),
                 spec.ty().ty().id,
@@ -489,15 +511,13 @@ impl CompositeTypeFields {
         } else if fields.iter().all(|f| f.name.is_some()) {
             let fields = fields
                 .iter()
-                .map(|field| {
-                    CompositeTypeNamedField {
-                        name: field
-                            .name
-                            .as_ref()
-                            .expect("All fields have a name; qed")
-                            .to_owned(),
-                        field: field.clone(),
-                    }
+                .map(|field| CompositeTypeNamedField {
+                    name: field
+                        .name
+                        .as_ref()
+                        .expect("All fields have a name; qed")
+                        .to_owned(),
+                    field: field.clone(),
                 })
                 .collect();
             Ok(Self::Named(fields))
@@ -515,10 +535,7 @@ impl CompositeTypeFields {
 mod tests {
     use super::*;
     use crate::scon::Hex;
-    use ink_env::{
-        DefaultEnvironment,
-        Environment,
-    };
+    use ink_env::{DefaultEnvironment, Environment};
     use primitive_types::H256;
     use scale::Encode;
     use scon::Value;
@@ -617,6 +634,11 @@ mod tests {
             #[ink(message)]
             pub fn h160(&self, addr: ink::H160) {
                 let _ = addr;
+            }
+
+            #[ink(message)]
+            pub fn set_name(&self, name: String) {
+                let _ = name;
             }
         }
     }
@@ -977,5 +999,92 @@ mod tests {
         let _ = transcoder
             .decode_contract_event(&signature_topic, &mut &encoded_bytes[..])
             .unwrap();
+    }
+
+    #[test]
+    fn encode_string_quoted_traditional() -> Result<()> {
+        // Traditional SCON format with explicit quotes
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(metadata);
+
+        let encoded = transcoder.encode("set_name", [r#""Alice""#])?;
+        let encoded_args = &encoded[4..];
+
+        let expected = "Alice".to_string().encode();
+        assert_eq!(expected, encoded_args);
+        Ok(())
+    }
+
+    #[test]
+    fn encode_string_unquoted_simple() -> Result<()> {
+        // Simple unquoted string - should work after fix
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(metadata);
+
+        let encoded = transcoder.encode("set_name", ["Alice"])?;
+        let encoded_args = &encoded[4..];
+
+        let expected = "Alice".to_string().encode();
+        assert_eq!(expected, encoded_args);
+        Ok(())
+    }
+
+    #[test]
+    fn encode_string_with_spaces() -> Result<()> {
+        // String with spaces - simulating bash: --args "my string"
+        // Bash passes "my string" (with the quotes stripped) to the program
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(metadata);
+
+        let encoded = transcoder.encode("set_name", ["my string"])?;
+        let encoded_args = &encoded[4..];
+
+        let expected = "my string".to_string().encode();
+        assert_eq!(expected, encoded_args);
+        Ok(())
+    }
+
+    #[test]
+    fn encode_string_with_special_chars() -> Result<()> {
+        // String with special characters
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(metadata);
+
+        let test_string = "Hello, World! 123 @#$%";
+        let encoded = transcoder.encode("set_name", [test_string])?;
+        let encoded_args = &encoded[4..];
+
+        let expected = test_string.to_string().encode();
+        assert_eq!(expected, encoded_args);
+        Ok(())
+    }
+
+    #[test]
+    fn encode_empty_string() -> Result<()> {
+        // Empty string
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(metadata);
+
+        let encoded = transcoder.encode("set_name", [""])?;
+        let encoded_args = &encoded[4..];
+
+        let expected = "".to_string().encode();
+        assert_eq!(expected, encoded_args);
+        Ok(())
+    }
+
+    #[test]
+    fn encode_string_numbers_as_string() -> Result<()> {
+        // Numbers that should be treated as strings
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(metadata);
+
+        let encoded = transcoder.encode("set_name", ["12345"])?;
+        let encoded_args = &encoded[4..];
+
+        // Should encode as string "12345", not integer 12345
+        let expected = "12345".to_string().encode();
+        assert_eq!(expected, encoded_args);
+        Ok(())
     }
 }
