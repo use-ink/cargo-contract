@@ -409,6 +409,12 @@ mod tests {
             pub amount: u32,
         }
 
+        impl Default for EventHarness {
+            fn default() -> Self {
+                Self::new()
+            }
+        }
+
         impl EventHarness {
             #[ink(constructor)]
             pub fn new() -> Self {
