@@ -204,7 +204,7 @@ impl DisplayEvents {
                             scale::Compact(ce.data.len() as u32).encode();
                         encoded_data.extend_from_slice(&ce.data);
                         let mut data_slice = encoded_data.as_slice();
-                        let field = contract_event_vec_field::<C>(
+                        let field = contract_event_vec_field(
                             transcoder,
                             field_metadata,
                             ce.topics.first(),
@@ -348,7 +348,7 @@ impl DisplayEvents {
 /// Construct the contract event data field, attempting to decode the event using the
 /// [`ContractMessageTranscoder`] if available.
 #[allow(clippy::needless_borrows_for_generic_args)]
-fn contract_event_vec_field<C: Config>(
+fn contract_event_vec_field(
     transcoder: Option<&ContractMessageTranscoder>,
     field_metadata: &scale_info::Field<PortableForm>,
     event_sig_topic: Option<&H256>,
@@ -390,25 +390,25 @@ mod tests {
     fn test_contract_event_without_transcoder_returns_hex() {
         use scale_info::{
             Field as ScaleField,
-            TypeInfo,
-            meta_type,
+            IntoPortable as _,
         };
 
         // Create mock field metadata
-        let field_meta = ScaleField::new(
-            Some("data".to_string()),
-            meta_type::<Vec<u8>>(),
-            Some("Vec<u8>".to_string()),
-            vec![],
+        let meta_field = ScaleField::new(
+            Some("data"),
+            scale_info::MetaType::new::<Vec<u8>>(),
+            Some("Vec<u8>"),
             vec![],
         );
+        let mut registry = scale_info::Registry::new();
+        let field_meta = meta_field.into_portable(&mut registry);
 
         // Sample event data (would normally be SCALE-encoded event fields)
         let event_data_bytes = vec![0x04, 0x00, 0x01, 0x02, 0x03];
         let mut event_data = event_data_bytes.as_slice();
 
         // When transcoder is None, the result should be hex
-        let result = contract_event_vec_field::<subxt::PolkadotConfig>(
+        let result = contract_event_vec_field(
             None, // <- BUG: No transcoder passed
             &field_meta,
             None,
