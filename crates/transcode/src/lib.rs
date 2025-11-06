@@ -203,7 +203,7 @@ fn parse_with_type_hint(
     // Get the expected type from metadata
     let ty = registry
         .resolve(type_id)
-        .ok_or_else(|| anyhow::anyhow!("Type {} not found in registry", type_id))?;
+        .ok_or_else(|| anyhow::anyhow!("Type {type_id} not found in registry"))?;
     // For String types, provide special handling
     if matches!(&ty.type_def, TypeDef::Primitive(TypeDefPrimitive::Str)) {
         // If the argument is already properly quoted for SCON, parse it normally
