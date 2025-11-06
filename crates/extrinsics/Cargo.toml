@@ -53,5 +53,6 @@ subxt-signer = { version = "0.44.0", features = ["subxt", "sr25519"] }
 stdio-override = "0.2.0"
 
 [features]
+std = []
 integration-tests = []
 test-ci-only = []

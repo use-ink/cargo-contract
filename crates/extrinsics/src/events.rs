@@ -381,19 +381,46 @@ fn contract_event_vec_field(
     ))
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
+    use anyhow::Result;
+    use ink::{
+        metadata::InkProject,
+        prelude::vec::Vec,
+    };
+    use ink_env::Event as _;
+    use scale::Encode;
+    use scale_info::{
+        Field as ScaleField,
+        IntoPortable as _,
+    };
+    use subxt::utils::H256;
 
-    /// Verify that without transcoder, events show as hex.
-    #[test]
-    fn test_contract_event_without_transcoder_returns_hex() {
-        use scale_info::{
-            Field as ScaleField,
-            IntoPortable as _,
-        };
+    #[allow(clippy::extra_unused_lifetimes, unexpected_cfgs, non_local_definitions)]
+    #[ink::contract]
+    pub mod event_contract {
+        #[ink(storage)]
+        pub struct EventHarness {}
 
-        // Create mock field metadata
+        #[ink(event)]
+        pub struct BalanceChanged {
+            pub value: bool,
+            pub amount: u32,
+        }
+
+        impl EventHarness {
+            #[ink(constructor)]
+            pub fn new() -> Self {
+                Self {}
+            }
+
+            #[ink(message)]
+            pub fn touch(&self) {}
+        }
+    }
+
+    fn contract_data_field_metadata() -> scale_info::Field<PortableForm> {
         let meta_field = ScaleField::new(
             Some("data"),
             scale_info::MetaType::new::<Vec<u8>>(),
@@ -401,47 +428,83 @@ mod tests {
             vec![],
         );
         let mut registry = scale_info::Registry::new();
-        let field_meta = meta_field.into_portable(&mut registry);
+        meta_field.into_portable(&mut registry)
+    }
+
+    fn generate_metadata() -> InkProject {
+        unsafe extern "Rust" {
+            fn __ink_generate_metadata() -> InkProject;
+        }
+        unsafe { __ink_generate_metadata() }
+    }
+
+    /// Without a transcoder we fall back to raw hex representation.
+    #[test]
+    fn contract_event_without_transcoder_returns_hex() {
+        let field_meta = contract_data_field_metadata();
 
         // Sample event data (would normally be SCALE-encoded event fields)
         let event_data_bytes = vec![0x04, 0x00, 0x01, 0x02, 0x03];
         let mut event_data = event_data_bytes.as_slice();
 
-        // When transcoder is None, the result should be hex
         let result = contract_event_vec_field(
-            None, // <- BUG: No transcoder passed
+            None,
             &field_meta,
             None,
             &mut event_data,
             &"data".to_string(),
         );
 
-        assert!(result.is_ok(), "Should not error");
+        assert!(result.is_ok(), "decoding without transcoder should succeed");
         let field = result.unwrap();
 
-        // Verify the bug: value should be Hex, not decoded
         match field.value {
-            Value::Hex(_) => {
-                // Bug confirmed: without transcoder, events are shown as hex
-            }
-            _ => {
-                panic!("Bug not present: Expected Hex value when transcoder is None");
-            }
+            Value::Hex(_) => {}
+            other => panic!("expected raw hex fallback, got {other:?}"),
         }
     }
 
-    /// Verify that with transcoder, events are decoded.
+    /// With a transcoder the contract event data is decoded into its fields.
     #[test]
-    #[ignore] // Ignore until we can set up a proper test with real contract metadata
-    fn test_contract_event_with_transcoder_returns_decoded_value() {
-        // This test requires:
-        // 1. Real contract metadata with event definitions
-        // 2. A ContractMessageTranscoder instance
-        // 3. Properly encoded event data
-        //
-        // When transcoder is Some(...), the result should be decoded event fields
-        // not raw hex.
-        //
-        // This will be tested via integration test with real contract.
+    fn contract_event_with_transcoder_decodes_payload() -> Result<()> {
+        let field_meta = contract_data_field_metadata();
+
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(metadata);
+
+        let payload = event_contract::BalanceChanged {
+            value: true,
+            amount: 7u32,
+        };
+        let payload_bytes = payload.encode();
+        let mut encoded_data = scale::Compact(payload_bytes.len() as u32).encode();
+        encoded_data.extend_from_slice(&payload_bytes);
+        let mut data_slice = encoded_data.as_slice();
+
+        let signature_topic_bytes = event_contract::BalanceChanged::SIGNATURE_TOPIC
+            .expect("event has a signature topic");
+        let signature_topic = H256::from(signature_topic_bytes);
+
+        let field = contract_event_vec_field(
+            Some(&transcoder),
+            &field_meta,
+            Some(&signature_topic),
+            &mut data_slice,
+            &"data".to_string(),
+        )?;
+
+        let Value::Map(map) = field.value else {
+            panic!("expected decoded event to be a map");
+        };
+        let decoded_value = map
+            .get_by_str("value")
+            .expect("decoded event contains `value` field");
+        assert_eq!(decoded_value, &Value::Bool(true));
+        let decoded_amount = map
+            .get_by_str("amount")
+            .expect("decoded event contains `amount` field");
+        assert_eq!(decoded_amount, &Value::UInt(7u128));
+
+        Ok(())
     }
 }
