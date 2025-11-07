@@ -440,15 +440,16 @@ where
         gas_limit: Option<Weight>,
         storage_deposit_limit: Option<E::Balance>,
     ) -> Result<InstantiateExecResult<C>, ErrorVariant> {
-        // use user specified values where provided, otherwise estimate
+        // Use user-specified limits when provided, otherwise fall back to an estimation.
         let (use_gas_limit, use_storage_deposit_limit) =
             match (gas_limit, storage_deposit_limit) {
-                (Some(gas), Some(storage)) => (gas, storage),
-                _ => {
-                    let estimation = self.estimate_limits().await?;
+                (Some(gas), Some(deposit)) => (gas, deposit),
+                (gas, deposit) => {
+                    let (estimated_gas, estimated_deposit) =
+                        self.estimate_limits().await?;
                     (
-                        gas_limit.unwrap_or(estimation.0),
-                        storage_deposit_limit.unwrap_or(estimation.1),
+                        gas.unwrap_or(estimated_gas),
+                        deposit.unwrap_or(estimated_deposit),
                     )
                 }
             };

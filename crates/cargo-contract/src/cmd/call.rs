@@ -277,8 +277,14 @@ impl CallCommand {
             let events = call_exec
                 .call(Some(gas_limit), Some(storage_deposit_limit))
                 .await?;
-            let display_events =
-                DisplayEvents::from_events::<C, C>(&events, None, &metadata)?;
+            // Pass the transcoder to decode contract events.
+            // Without the transcoder, events display as raw hex instead of decoded
+            // values.
+            let display_events = DisplayEvents::from_events::<C, C>(
+                &events,
+                Some(call_exec.transcoder()),
+                &metadata,
+            )?;
 
             let output = if self.output_json() {
                 display_events.to_json()?
