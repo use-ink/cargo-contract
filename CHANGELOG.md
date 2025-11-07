@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]
 
+### Fixed
+- Event decoding when interacting with a contract - [2162](https://github.com/use-ink/cargo-contract/pull/2162)
+
 ## Version 6.0.0-beta
 
 ### Added

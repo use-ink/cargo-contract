@@ -193,6 +193,7 @@ impl DisplayEvents {
             };
 
             let event_data = &mut event.field_bytes();
+            tracing::debug!("event data: {:?}", hex::encode(&event_data));
             let mut unnamed_field_name = 0;
             for field_metadata in event_fields {
                 if let Some(ref ce) = contract_emitted {
