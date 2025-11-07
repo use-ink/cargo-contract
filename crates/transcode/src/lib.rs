@@ -671,8 +671,7 @@ mod tests {
             }
 
             #[ink(message)]
-            pub fn set_name(&self, _name: String) {
-            }
+            pub fn set_name(&self, _name: String) {}
         }
     }
 
