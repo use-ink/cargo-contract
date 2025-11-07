@@ -440,25 +440,19 @@ where
         gas_limit: Option<Weight>,
         storage_deposit_limit: Option<E::Balance>,
     ) -> Result<InstantiateExecResult<C>, ErrorVariant> {
-        // use user specified values where provided, otherwise estimate
-        let use_gas_limit;
-        let use_storage_deposit_limit;
-        if gas_limit.is_none() || storage_deposit_limit.is_none() {
-            let estimation = self.estimate_limits().await?;
-            if gas_limit.is_none() {
-                use_gas_limit = estimation.0;
-            } else {
-                use_gas_limit = gas_limit.unwrap();
-            }
-            if storage_deposit_limit.is_none() {
-                use_storage_deposit_limit = estimation.1;
-            } else {
-                use_storage_deposit_limit = storage_deposit_limit.unwrap();
-            }
-        } else {
-            use_gas_limit = gas_limit.unwrap();
-            use_storage_deposit_limit = storage_deposit_limit.unwrap();
-        }
+        // Use user-specified limits when provided, otherwise fall back to an estimation.
+        let (use_gas_limit, use_storage_deposit_limit) =
+            match (gas_limit, storage_deposit_limit) {
+                (Some(gas), Some(deposit)) => (gas, deposit),
+                (gas, deposit) => {
+                    let (estimated_gas, estimated_deposit) =
+                        self.estimate_limits().await?;
+                    (
+                        gas.unwrap_or(estimated_gas),
+                        deposit.unwrap_or(estimated_deposit),
+                    )
+                }
+            };
 
         match self.args.code.clone() {
             Code::Upload(code) => {
