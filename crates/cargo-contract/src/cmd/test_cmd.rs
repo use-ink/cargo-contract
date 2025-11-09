@@ -88,12 +88,9 @@ impl TestCommand {
         let output = cmd.run()?;
         if !output.status.success() {
             anyhow::bail!(
-                "Failed to run `cargo test`{}",
-                if output.stderr.is_empty() {
-                    String::new()
-                } else {
-                    format!(": {}", String::from_utf8_lossy(&output.stderr))
-                }
+                "Failed to run `cargo test`:\n{}\n{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr),
             )
         }
 
