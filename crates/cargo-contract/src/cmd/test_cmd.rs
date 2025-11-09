@@ -31,6 +31,7 @@ pub struct TestCommand {
     /// Path to the `Cargo.toml` of the contract to test.
     #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
+    /// Activate specific features.
     #[clap(flatten)]
     features: Features,
     /// Activate all available features.
