@@ -31,6 +31,7 @@ pub struct TestCommand {
     /// Path to the `Cargo.toml` of the contract to test.
     #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
+    /// Activate specific features.
     #[clap(flatten)]
     features: Features,
     /// Activate all available features.
@@ -51,9 +52,10 @@ impl TestCommand {
         // Composes `cargo test` args.
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
         let mut args = vec![manifest_path.cargo_arg()?];
-        self.features.append_to_args(&mut args);
         if self.all_features {
             args.push("--all-features".to_string());
+        } else {
+            self.features.append_to_args(&mut args);
         }
         if !self.args.is_empty() {
             args.extend(self.args.clone());
