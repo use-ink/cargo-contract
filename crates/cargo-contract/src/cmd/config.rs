@@ -60,7 +60,11 @@ impl Config for Ecdsachain {
 
 impl Environment for Ecdsachain {
     const NATIVE_TO_ETH_RATIO: u32 =
-        <DefaultEnvironment as Environment>::NATIVE_TO_ETH_RATIO;
+    const TRUST_BACKED_ASSETS_PRECOMPILE_INDEX: u32 =
+        <DefaultEnvironment as Environment>::TRUST_BACKED_ASSETS_PRECOMPILE_INDEX;
+    const POOL_ASSETS_PRECOMPILE_INDEX: u32 =
+        <DefaultEnvironment as Environment>::POOL_ASSETS_PRECOMPILE_INDEX;
+
     type AccountId = <DefaultEnvironment as Environment>::AccountId;
     type Balance = <DefaultEnvironment as Environment>::Balance;
     type Hash = <DefaultEnvironment as Environment>::Hash;
@@ -94,6 +98,11 @@ impl Config for Substrate {
 impl Environment for Substrate {
     const NATIVE_TO_ETH_RATIO: u32 =
         <DefaultEnvironment as Environment>::NATIVE_TO_ETH_RATIO;
+    const TRUST_BACKED_ASSETS_PRECOMPILE_INDEX: u32 =
+        <DefaultEnvironment as Environment>::TRUST_BACKED_ASSETS_PRECOMPILE_INDEX;
+    const POOL_ASSETS_PRECOMPILE_INDEX: u32 =
+        <DefaultEnvironment as Environment>::POOL_ASSETS_PRECOMPILE_INDEX;
+
     type AccountId = <DefaultEnvironment as Environment>::AccountId;
     type Balance = <DefaultEnvironment as Environment>::Balance;
     type Hash = <DefaultEnvironment as Environment>::Hash;
@@ -124,6 +133,11 @@ impl Config for Polkadot {
 impl Environment for Polkadot {
     const NATIVE_TO_ETH_RATIO: u32 =
         <DefaultEnvironment as Environment>::NATIVE_TO_ETH_RATIO;
+    const TRUST_BACKED_ASSETS_PRECOMPILE_INDEX: u32 =
+        <DefaultEnvironment as Environment>::TRUST_BACKED_ASSETS_PRECOMPILE_INDEX;
+    const POOL_ASSETS_PRECOMPILE_INDEX: u32 =
+        <DefaultEnvironment as Environment>::POOL_ASSETS_PRECOMPILE_INDEX;
+
     type AccountId = <DefaultEnvironment as Environment>::AccountId;
     type Balance = <DefaultEnvironment as Environment>::Balance;
     type Hash = <DefaultEnvironment as Environment>::Hash;
