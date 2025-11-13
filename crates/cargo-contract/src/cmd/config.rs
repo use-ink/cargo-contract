@@ -60,6 +60,7 @@ impl Config for Ecdsachain {
 
 impl Environment for Ecdsachain {
     const NATIVE_TO_ETH_RATIO: u32 =
+        <DefaultEnvironment as Environment>::NATIVE_TO_ETH_RATIO;
     const TRUST_BACKED_ASSETS_PRECOMPILE_INDEX: u32 =
         <DefaultEnvironment as Environment>::TRUST_BACKED_ASSETS_PRECOMPILE_INDEX;
     const POOL_ASSETS_PRECOMPILE_INDEX: u32 =
