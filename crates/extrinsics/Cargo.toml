@@ -43,7 +43,7 @@ ink_metadata = { workspace = true }
 ink_env = { workspace = true }
 
 [dev-dependencies]
-ink = { version = "6.0.0-beta", features = ["unstable-hostfn"] }
+ink = { version = "6.0.0-beta.1", features = ["unstable-hostfn"] }
 assert_cmd = "2.0.17"
 regex = "1.11.1"
 predicates = "3.1.3"

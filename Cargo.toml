@@ -6,5 +6,5 @@ members = ["crates/*"]
 rust-version = "1.88"
 
 [workspace.dependencies]
-ink_metadata = { version = "6.0.0-beta", default-features = false, features = ["std", "derive"] }
-ink_env = { version = "6.0.0-beta", features = ["unstable-hostfn"] }
+ink_metadata = { version = "6.0.0-beta.1", default-features = false, features = ["std", "derive"] }
+ink_env = { version = "6.0.0-beta.1", features = ["unstable-hostfn"] }
