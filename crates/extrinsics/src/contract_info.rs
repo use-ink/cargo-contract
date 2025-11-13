@@ -205,8 +205,8 @@ pub struct PrAccountInfo<Balance: Debug + DecodeAsType> {
     /// The type of the account.
     pub account_type: PrAccountType<Balance>,
 
-    // The  amount that was transferred to this account that is less than the
-    // NativeToEthRatio, and can be represented in the native currency
+    // The amount that was transferred to this account that is less than the
+    // `NativeToEthRatio`, and can be represented in the native currency
     #[allow(dead_code)]
     pub dust: u32,
 }
