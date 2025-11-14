@@ -55,7 +55,7 @@ _Settings_ -> _Features in development_ tab in Docker Desktop App.
 Build docker image:
 
 ```bash
-docker buildx build -t useink/contracts-verifiable:0.0.1-local --build-arg CARGO_CONTRACT_VERSION=6.0.0-alpha .
+docker buildx build -t useink/contracts-verifiable:0.0.1-local --build-arg CARGO_CONTRACT_TAG=v6.0.0-beta.1 .
 ```
 
 Run docker container:
