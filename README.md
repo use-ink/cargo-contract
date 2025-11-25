@@ -67,20 +67,20 @@ If you prefer to use Docker instead, we have a Docker image
 docker pull useink/ci
 
 # Create a new contract in your current directory.
-docker run --rm -it -v $(pwd):/sources useink/ci \
+docker run --rm -it -v "$(pwd):/sources" useink/ci \
   cargo contract new --target-dir /sources my_contract
 
 # Build the contract. This will create the contract file under
 # `my_contract/target/ink/my_contract.contract`.
-docker run --rm -it -v $(pwd):/sources useink/ci \
+docker run --rm -it -v "$(pwd):/sources" useink/ci \
   cargo contract build --manifest-path=/sources/my_contract/Cargo.toml
 ```
 
 **Windows:** If you use PowerShell, change `$(pwd)` to `${pwd}`.
 
-```bash
+```powershell
 # Create a new contract in your current directory (in Windows PowerShell).
-docker run --rm -it -v ${pwd}:/sources useink/ci \
+docker run --rm -it -v "${pwd}:/sources" useink/ci \
   cargo contract new --target-dir /sources my_contract
 ```
 
