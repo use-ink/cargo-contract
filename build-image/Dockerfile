@@ -11,7 +11,7 @@ ARG CARGO_CONTRACT_BRANCH
 # Commit to use in git repository
 ARG CARGO_CONTRACT_REV
 # Tag to use in git repository
-ARG CARGO_CONTRACT_TAG=v6.0.0-beta
+ARG CARGO_CONTRACT_TAG=v6.0.0-beta.1
 # gcc package version (meta-package, points to gcc-13)
 ARG GCC_VERSION=4:14.2.0-1
 # wget package version
