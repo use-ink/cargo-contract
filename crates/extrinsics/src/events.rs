@@ -383,6 +383,8 @@ fn contract_event_vec_field(
 }
 
 #[cfg(all(test, feature = "std"))]
+// For contract re-exports and `cfg`s.
+#[allow(unused_imports, unexpected_cfgs)]
 mod tests {
     use super::*;
     use anyhow::Result;
@@ -398,7 +400,7 @@ mod tests {
     };
     use subxt::utils::H256;
 
-    #[allow(clippy::extra_unused_lifetimes, unexpected_cfgs, non_local_definitions)]
+    #[allow(clippy::extra_unused_lifetimes, non_local_definitions)]
     #[ink::contract]
     pub mod event_contract {
         #[ink(storage)]
