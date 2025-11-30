@@ -65,13 +65,18 @@ use subxt_signer::{
 const CONTRACTS_NODE: &str = "ink-node";
 
 /// Create a `cargo contract` command
-// Note: `cargo_bin` is deprecated in favor of `cargo_bin_cmd!`, but the macro only works
-// for binaries in the same crate. Since we're testing the `cargo-contract` binary from
-// a different crate, we must continue using `cargo_bin` until a cross-crate alternative
-// is available.
-#[allow(deprecated)]
 fn cargo_contract(path: &Path) -> assert_cmd::Command {
-    let mut cmd = assert_cmd::Command::cargo_bin("cargo-contract").unwrap();
+    let mut cmd = if let Ok(nextest_bin) = std::env::var("NEXTEST_BIN_EXE_cargo-contract") {
+        // When running with nextest archive, use NEXTEST_BIN_EXE_* which has the
+        // correct remapped path
+        assert_cmd::Command::new(nextest_bin)
+    } else {
+        // Fall back to cargo_bin for normal cargo test
+        // Note: cargo_bin is deprecated but we can't use cargo_bin_cmd! since we're
+        // testing a binary from a different crate
+        #[allow(deprecated)]
+        assert_cmd::Command::cargo_bin("cargo-contract").unwrap()
+    };
     cmd.current_dir(path).arg("contract");
     cmd
 }
