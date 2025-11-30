@@ -1,6 +1,6 @@
 [package]
 name = "contract-transcode"
-version = "6.0.0-alpha.4"
+version = "6.0.0-beta.1"
 authors = ["Use Ink <ink@use.ink>"]
 edition = "2024"
 
@@ -8,7 +8,7 @@ license = "Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/use-ink/cargo-contract"
 documentation = "https://docs.rs/contract-transcode"
-homepage = "https://www.substrate.io/"
+homepage = "https://use.ink/"
 description = "Library encoding calls for smart contracts on substrate"
 keywords = ["polkavm", "ink", "riscv", "blockchain", "edsl"]
 include = ["Cargo.toml", "*.rs", "LICENSE"]
@@ -20,7 +20,7 @@ path = "src/lib.rs"
 anyhow = "1.0.100"
 base58 = { version = "0.2.0" }
 blake2 = { version = "0.10.6", default-features = false }
-contract-metadata = { version = "6.0.0-alpha.4", path = "../metadata" }
+contract-metadata = { version = "6.0.0-beta.1", path = "../metadata" }
 escape8259 = "0.5.2"
 hex = "0.4.3"
 indexmap = "2.10.0"
@@ -42,7 +42,7 @@ tokio = { version = "1.44.2", features = ["net", "macros", "rt-multi-thread"] }
 
 [dev-dependencies]
 assert_matches = "1.5.0"
-ink = { version = "6.0.0-beta", features = ["unstable-hostfn"] }
+ink = { version = "6.0.0-beta.1", features = ["unstable-hostfn"] }
 sp-core = { version = "38.0.0", default-features = false }
 sp-keyring = { version = "43.0.0", default-features = false }
 

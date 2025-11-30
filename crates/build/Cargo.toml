@@ -1,6 +1,6 @@
 [package]
 name = "contract-build"
-version = "6.0.0-alpha.4"
+version = "6.0.0-beta.1"
 authors = ["Use Ink <ink@use.ink>"]
 edition = "2024"
 
@@ -8,7 +8,7 @@ license = "Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/use-ink/cargo-contract"
 documentation = "https://docs.rs/contract-build"
-homepage = "https://www.substrate.io/"
+homepage = "https://use.ink/"
 description = "Library for building ink! smart contracts"
 keywords = ["polkavm", "ink", "riscv", "blockchain", "edsl"]
 include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "templates", "riscv_memory_layout.ld"]
@@ -17,9 +17,9 @@ include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "tem
 regex = "1"
 anyhow = "1.0.100"
 blake2 = "0.10.6"
-cargo_metadata = "0.22.0"
+cargo_metadata = "0.23.0"
 colored = "3.0.0"
-clap = { version = "4.5.48", features = ["derive", "env"] }
+clap = { version = "4.5.51", features = ["derive", "env"] }
 duct = "1.1.0"
 heck = "0.5.0"
 hex = "0.4.3"
@@ -36,7 +36,7 @@ serde_json = "1.0.145"
 tempfile = "3.23.0"
 term_size = "0.3.2"
 url = { version = "2.5.4", features = ["serde"] }
-zip = { version = "5.1.1", default-features = false }
+zip = { version = "6.0.0", default-features = false }
 tokio = { version = "1.44.2", features = ["macros", "rt-multi-thread", "net"] }
 tokio-stream = "0.1.17"
 bollard = "0.19.3"
@@ -47,7 +47,7 @@ alloy-json-abi = "1.3.1"
 polkavm-linker = "0.29.0"
 rustversion = "1"
 
-contract-metadata = { version = "6.0.0-alpha.4", path = "../metadata" }
+contract-metadata = { version = "6.0.0-beta.1", path = "../metadata" }
 ink_metadata = { workspace = true }
 sha3 = "0.10.8"
 
@@ -65,7 +65,7 @@ which = "8.0.0"
 [build-dependencies]
 anyhow = "1.0.100"
 walkdir = "2.5.0"
-zip = { version = "5.1.1", default-features = false }
+zip = { version = "6.0.0", default-features = false }
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"

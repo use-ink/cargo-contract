@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]
 
+## Version 6.0.0-beta.1
+
+### Fixed
+- Event decoding when interacting with a contract - [2162](https://github.com/use-ink/cargo-contract/pull/2162)
+- Accept plain string call arguments by inferring types from metadata - [2161](https://github.com/use-ink/cargo-contract/pull/2161).
+- Only use `--all-features` in `cargo contract test` when no feature specified - [2164](https://github.com/use-ink/cargo-contract/pull/2164)
+
+## Version 6.0.0-beta
+
 ### Added
 - Heuristic to distinguish ink! vs. Solidity contracts on-chain ‒ [2147](https://github.com/use-ink/cargo-contract/pull/2147)
 - Added more output to `cargo contract info` ‒ [2148](https://github.com/use-ink/cargo-contract/pull/2148)

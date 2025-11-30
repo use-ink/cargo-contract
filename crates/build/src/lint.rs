@@ -33,11 +33,11 @@ use crate::{
 
 /// Toolchain used to build ink_linting:
 /// https://github.com/use-ink/ink/blob/master/linting/rust-toolchain.toml
-pub const TOOLCHAIN_VERSION: &str = "nightly-2025-02-20";
+pub const TOOLCHAIN_VERSION: &str = "nightly-2025-09-18";
 /// Git repository with ink_linting libraries
 pub const GIT_URL: &str = "https://github.com/use-ink/ink";
 /// Git revision number of the linting crate
-pub const GIT_REV: &str = "2288bfd0b65c52ab7069da3091073d77f601ace8";
+pub const GIT_REV: &str = "9681e758aec8898de05d8ba3db4224eaa5f076f6";
 
 /// Run linting that involves two steps: `clippy` and `dylint`. Both are mandatory as
 /// they're part of the compilation process and implement security-critical features.
