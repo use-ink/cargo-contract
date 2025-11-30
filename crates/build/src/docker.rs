@@ -518,7 +518,9 @@ fn compose_build_args() -> Result<Vec<String>> {
     // match `--image` or `verify` with arg with 1 or more white spaces surrounded
     let rex = Regex::new(r#"(--image|verify)[ ]*[^ ]*[ ]*"#)?;
     // we join the args together, so we can remove `--image <arg>`
-    let args_string: String = std::env::args().collect::<Vec<String>>().join(" ");
+    // We skip the first captured argument (binary name), to allow other binaries use
+    // docker_build.
+    let args_string: String = std::env::args().skip(1).collect::<Vec<String>>().join(" ");
     let args_string = rex.replace_all(&args_string, "").to_string();
 
     // and then we turn it back to the vec, filtering out commands and arguments
