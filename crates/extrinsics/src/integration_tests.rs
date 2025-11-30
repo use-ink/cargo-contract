@@ -65,6 +65,10 @@ use subxt_signer::{
 const CONTRACTS_NODE: &str = "ink-node";
 
 /// Create a `cargo contract` command
+// Note: `cargo_bin` is deprecated in favor of `cargo_bin_cmd!`, but the macro only works
+// for binaries in the same crate. Since we're testing the `cargo-contract` binary from
+// a different crate, we must continue using `cargo_bin` until a cross-crate alternative
+// is available.
 #[allow(deprecated)]
 fn cargo_contract(path: &Path) -> assert_cmd::Command {
     let mut cmd = assert_cmd::Command::cargo_bin("cargo-contract").unwrap();
