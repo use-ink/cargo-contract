@@ -563,6 +563,8 @@ impl CompositeTypeFields {
 }
 
 #[cfg(test)]
+// For contract re-exports and `cfg`s.
+#[allow(unused_imports, unexpected_cfgs)]
 mod tests {
     use super::*;
     use crate::scon::Hex;
@@ -575,7 +577,7 @@ mod tests {
     use scon::Value;
     use std::str::FromStr;
 
-    #[allow(clippy::extra_unused_lifetimes, unexpected_cfgs, non_local_definitions)]
+    #[allow(clippy::extra_unused_lifetimes, non_local_definitions)]
     #[ink::contract]
     pub mod transcode {
         #[ink(storage)]
