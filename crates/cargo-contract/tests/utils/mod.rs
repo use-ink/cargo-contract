@@ -20,7 +20,7 @@ pub mod node_proc;
 
 /// Create a `cargo contract` command
 pub fn cargo_contract<P: AsRef<Path>>(path: P) -> assert_cmd::Command {
-    let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+    let mut cmd = assert_cmd::cargo::cargo_bin_cmd!(env!("CARGO_PKG_NAME"));
     cmd.current_dir(path).arg("contract");
     cmd
 }

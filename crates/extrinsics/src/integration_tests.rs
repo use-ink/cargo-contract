@@ -65,6 +65,7 @@ use subxt_signer::{
 const CONTRACTS_NODE: &str = "ink-node";
 
 /// Create a `cargo contract` command
+#[allow(deprecated)]
 fn cargo_contract(path: &Path) -> assert_cmd::Command {
     let mut cmd = assert_cmd::Command::cargo_bin("cargo-contract").unwrap();
     cmd.current_dir(path).arg("contract");
