@@ -182,7 +182,7 @@ pub fn init_tracing_subscriber() {
 ///
 /// # Note
 ///
-/// Requires [`substrate-contracts-node`](https://github.com/paritytech/substrate-contracts-node/) to
+/// Requires [`ink-node`](https://github.com/use-ink/ink-node/) to
 /// be installed and available on the `PATH`, and the no other process running using the
 /// default port `9944`.
 #[tokio::test]
@@ -327,7 +327,7 @@ async fn build_upload_remove() {
 ///
 /// # Note
 ///
-/// Requires [`substrate-contracts-node`](https://github.com/paritytech/substrate-contracts-node/) to
+/// Requires [`ink-node`](https://github.com/use-ink/ink-node/) to
 /// be installed and available on the `PATH`, and the no other process running using the
 /// default port `9944`.
 #[tokio::test]
@@ -466,7 +466,7 @@ async fn build_upload_instantiate_info() {
 ///
 /// # Note
 ///
-/// Requires [`substrate-contracts-node`](https://github.com/paritytech/substrate-contracts-node/) to
+/// Requires [`ink-node`](https://github.com/use-ink/ink-node/) to
 /// be installed and available on the `PATH`, and the no other process running using the
 /// default port `9944`.
 #[tokio::test]
@@ -724,7 +724,7 @@ async fn api_rpc_call() {
 ///
 /// # Note
 ///
-/// Requires [`substrate-contracts-node`](https://github.com/paritytech/substrate-contracts-node/) to
+/// Requires [`ink-node`](https://github.com/use-ink/ink-node/) to
 /// be installed and available on the `PATH`, and the no other process running using the
 /// default port `9944`.
 #[tokio::test]
@@ -827,7 +827,7 @@ async fn build_upload_instantiate_storage() {
 ///
 /// # Note
 ///
-/// Requires [`substrate-contracts-node`](https://github.com/paritytech/substrate-contracts-node/) to
+/// Requires [`ink-node`](https://github.com/use-ink/ink-node/) to
 /// be installed and available on the `PATH`, and the no other process running using the
 /// default port `9944`.
 #[tokio::test]
@@ -972,7 +972,7 @@ async fn adhere_to_limits_during_build_upload_instantiate_call() {
 ///
 /// # Note
 ///
-/// Requires [`substrate-contracts-node`](https://github.com/paritytech/substrate-contracts-node/) to
+/// Requires [`ink-node`](https://github.com/use-ink/ink-node/) to
 /// be installed and available on the `PATH`, and the no other process running using the
 /// default port `9944`.
 #[tokio::test]
@@ -1179,7 +1179,7 @@ async fn complex_types_for_contract_interaction() {
 ///
 /// # Note
 ///
-/// Requires [`substrate-contracts-node`](https://github.com/paritytech/substrate-contracts-node/) to
+/// Requires [`ink-node`](https://github.com/use-ink/ink-node/) to
 /// be installed and available on the `PATH`, and the no other process running using the
 /// default port `9944`.
 #[tokio::test]

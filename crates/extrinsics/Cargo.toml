@@ -1,6 +1,6 @@
 [package]
 name = "contract-extrinsics"
-version = "6.0.0-alpha.4"
+version = "6.0.0-beta.1"
 authors = ["Use Ink <ink@use.ink>"]
 edition = "2024"
 rust-version.workspace = true
@@ -9,15 +9,15 @@ license = "Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/use-ink/cargo-contract"
 documentation = "https://docs.rs/contract-extrinsics"
-homepage = "https://www.substrate.io/"
+homepage = "https://use.ink/"
 description = "Library defining extrinsics for smart contracts on polkadot-sdk"
 keywords = ["polkavm", "ink", "riscv", "blockchain", "edsl"]
 include = ["Cargo.toml", "*.rs", "LICENSE"]
 
 [dependencies]
-contract-build = { version = "6.0.0-alpha.4", path = "../build" }
-contract-metadata = { version = "6.0.0-alpha.4", path = "../metadata" }
-contract-transcode = { version = "6.0.0-alpha.4", path = "../transcode" }
+contract-build = { version = "6.0.0-beta.1", path = "../build" }
+contract-metadata = { version = "6.0.0-beta.1", path = "../metadata" }
+contract-transcode = { version = "6.0.0-beta.1", path = "../transcode" }
 
 anyhow = "1.0.100"
 itertools = { version = "0.14", default-features = false }
@@ -34,17 +34,17 @@ subxt = "0.44.0"
 hex = "0.4.3"
 derivative = "2.2.0"
 
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "1b1cef306d9ceebf963fd15a04b5c79ee2618bce", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "1b1cef306d9ceebf963fd15a04b5c79ee2618bce" }
-sp-weights = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "1b1cef306d9ceebf963fd15a04b5c79ee2618bce", default-features = false }
-pallet-revive-uapi = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "1b1cef306d9ceebf963fd15a04b5c79ee2618bce", default-features = false, features = ["unstable-hostfn", "scale"] }
+sp-core = { version = "38.0.0", default-features = false }
+sp-runtime = { version = "43.0.0" }
+sp-weights = { version = "33.0.0", default-features = false }
+pallet-revive-uapi = { version = "0.8.0", default-features = false, features = ["unstable-hostfn", "scale"] }
 
 ink_metadata = { workspace = true }
 ink_env = { workspace = true }
 
 [dev-dependencies]
-ink = { git = "https://github.com/use-ink/ink", tag = "v6.0.0-alpha.4", features = ["unstable-hostfn"], version = "6.0.0-alpha.4" }
-assert_cmd = "2.0.17"
+ink = { version = "6.0.0-beta.1", features = ["unstable-hostfn"] }
+assert_cmd = "=2.0.17"
 regex = "1.11.1"
 predicates = "3.1.3"
 tempfile = "3.23.0"
@@ -53,5 +53,6 @@ subxt-signer = { version = "0.44.0", features = ["subxt", "sr25519"] }
 stdio-override = "0.2.0"
 
 [features]
+std = []
 integration-tests = []
 test-ci-only = []

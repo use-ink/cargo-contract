@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]
 
+## Version 6.0.0-beta.1
+
+### Fixed
+- Event decoding when interacting with a contract - [2162](https://github.com/use-ink/cargo-contract/pull/2162)
+- Accept plain string call arguments by inferring types from metadata - [2161](https://github.com/use-ink/cargo-contract/pull/2161).
+- Only use `--all-features` in `cargo contract test` when no feature specified - [2164](https://github.com/use-ink/cargo-contract/pull/2164)
+
+## Version 6.0.0-beta
+
 ### Added
 - Heuristic to distinguish ink! vs. Solidity contracts on-chain ‒ [2147](https://github.com/use-ink/cargo-contract/pull/2147)
 - Added more output to `cargo contract info` ‒ [2148](https://github.com/use-ink/cargo-contract/pull/2148)
@@ -13,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Re-enable `clippy::cast_possible_truncation` lint ‒ [#2138](https://github.com/use-ink/cargo-contract/pull/2138)
 - Synchronize with `polkadot-sdk/1b1cef306d9ceebf963fd15a04b5c79ee2618bce` ‒ [2675](https://github.com/use-ink/ink/pull/2675)
+- Synchronize with `polkadot-sdk/cbab8ed4be1941420dd25dc81102fb79d8e2a7f0` ‒ [2153](https://github.com/use-ink/ink/pull/2153)
 
 ### Fixed
 - Support `instantiate --code-hash` ‒ [2136](https://github.com/use-ink/cargo-contract/pull/2136)

@@ -14,7 +14,7 @@
 
 <p align="center">
 
-> <img src="https://raw.githubusercontent.com/use-ink/cargo-contract/master/.images/ink-squid.svg" alt="squink, the ink! mascot" style="vertical-align: middle" align="left" height="60" />`cargo-contract` is a CLI tool which helps you develop smart contracts for Polkadot's <a href="https://github.com/use-ink/ink">ink!</a>.<br/>ink! is a Rust [eDSL](https://wiki.haskell.org/Embedded_domain_specific_language) which allows you to write smart contracts for blockchains built on the [Substrate](https://github.com/paritytech/substrate) framework.
+> <img src="https://raw.githubusercontent.com/use-ink/cargo-contract/master/.images/ink-squid.svg" alt="squink, the ink! mascot" style="vertical-align: middle" align="left" height="60" />`cargo-contract` is a CLI tool which helps you develop smart contracts for Polkadot's <a href="https://github.com/use-ink/ink">ink!</a>.<br/>ink! is a Rust [eDSL](https://wiki.haskell.org/Embedded_domain_specific_language) which allows you to write smart contracts for blockchains built on the [Polkadot SDK](https://github.com/paritytech/polkadot-sdk) framework.
 
 </p>
 
@@ -29,9 +29,9 @@
 More relevant links:
 
 -   Find answers to your questions by joining our [Stack Exchange][s2] community
--   [ink!](https://github.com/use-ink/ink) ‒ The main ink! repository with smart contract examples
+-   [ink!](https://github.com/use-ink/ink) ‒ Main ink! repository with smart contract examples
 -   [Contracts UI](https://contracts-ui.substrate.io/) ‒ Frontend for contract deployment and interaction
--   [Substrate Contracts Node](https://github.com/paritytech/substrate-contracts-node) ‒ Simple Substrate blockchain which includes smart contract functionality
+-   [`ink-node`](https://github.com/use-ink/ink-node) ‒ Simple Polkadot SDK blockchain which includes smart contract functionality
 
 ## Installation
 

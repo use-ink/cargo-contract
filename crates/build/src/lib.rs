@@ -23,6 +23,11 @@ use contract_metadata::{
 };
 pub use lint::lint;
 
+// Hotfix for https://github.com/fizyk20/generic-array/issues/158.
+// Can be removed once there is a new release of https://github.com/RustCrypto,
+// from which we use some hashing crates (`sha3`, `sha2`, etc.).
+use generic_array as _;
+
 mod args;
 mod crate_metadata;
 mod docker;
@@ -878,7 +883,7 @@ fn h256_hash(code: &[u8]) -> [u8; 32] {
         Keccak256,
     };
     let hash = Keccak256::digest(code);
-    let sl = hash.as_slice();
+    let sl: &[u8] = hash.as_ref();
     assert!(sl.len() == 32, "expected length of 32");
     let mut arr = [0u8; 32];
     arr.copy_from_slice(sl);
