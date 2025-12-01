@@ -37,7 +37,7 @@ serde = { version = "1.0.219", default-features = false, features = ["derive"] }
 url = { version = "2.5.4", features = ["serde"] }
 semver = "1.0"
 jsonschema = "0.33.0"
-schemars = "0.8.22"
+schemars = "1.1.0"
 comfy-table = "7.1.4"
 num-traits = "0.2.19"
 
