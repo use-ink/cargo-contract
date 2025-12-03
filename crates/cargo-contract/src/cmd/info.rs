@@ -220,7 +220,7 @@ where
         };
         ExtendedContractInfo {
             trie_id: contract_info.trie_id().clone(),
-            code_hash: *contract_info.code_hash(),
+            code_hash: H256::from(contract_info.code_hash().0),
             storage_bytes: contract_info.storage_bytes(),
             storage_items: contract_info.storage_items(),
             storage_byte_deposit: contract_info.storage_byte_deposit(),
