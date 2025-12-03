@@ -25,7 +25,7 @@ use std::{
 
 use anyhow::Result;
 use clap::Args;
-use polkavm_linker::TARGET_JSON_64_BIT as POLKAVM_TARGET_JSON_64_BIT;
+use polkavm_linker::TARGET_JSON_64_BIT_OLD as POLKAVM_TARGET_JSON_64_BIT;
 use rustversion::{
     before,
     since,
