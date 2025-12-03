@@ -20,7 +20,8 @@ pub mod node_proc;
 
 /// Create a `cargo contract` command
 pub fn cargo_contract<P: AsRef<Path>>(path: P) -> assert_cmd::Command {
-    let mut cmd = if let Ok(nextest_bin) = std::env::var("NEXTEST_BIN_EXE_cargo-contract") {
+    let mut cmd = if let Ok(nextest_bin) = std::env::var("NEXTEST_BIN_EXE_cargo-contract")
+    {
         // When running with nextest archive, use NEXTEST_BIN_EXE_* which has the
         // correct remapped path
         assert_cmd::Command::new(nextest_bin)
