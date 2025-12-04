@@ -53,9 +53,7 @@ where
         anyhow::bail!("Contract names must begin with an alphabetic character");
     }
 
-    let out_dir = dir
-        .map_or(env::current_dir()?, |p| p.as_ref().to_path_buf())
-        .join(name);
+    let out_dir = dir.map_or(env::current_dir()?, |p| p.as_ref().to_path_buf());
     if out_dir.join("Cargo.toml").exists() {
         anyhow::bail!("A Cargo package already exists in {name}");
     }
@@ -216,7 +214,7 @@ mod tests {
             let dir = path.join(name);
             fs::create_dir_all(&dir).unwrap();
             fs::File::create(dir.join(".gitignore")).unwrap();
-            let result = new_contract_project(name, Some(path), None);
+            let result = new_contract_project(name, Some(path.join(name)), None);
 
             assert!(result.is_err(), "Should fail");
             assert_eq!(
@@ -233,7 +231,8 @@ mod tests {
             let name = "project_with_sol_abi";
             let dir = path.join(name);
             fs::create_dir_all(&dir).unwrap();
-            let result = new_contract_project(name, Some(path), Some(Abi::Solidity));
+            let result =
+                new_contract_project(name, Some(path.join(name)), Some(Abi::Solidity));
 
             assert!(result.is_ok(), "Should succeed");
 

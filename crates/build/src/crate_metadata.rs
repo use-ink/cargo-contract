@@ -325,7 +325,7 @@ mod tests {
                 let name = "project_with_valid_abi";
                 let dir = path.join(name);
                 fs::create_dir_all(&dir).unwrap();
-                let result = new_contract_project(name, Some(path), Some(abi));
+                let result = new_contract_project(name, Some(path.join(name)), Some(abi));
                 assert!(result.is_ok(), "Should succeed");
 
                 let manifest_path = ManifestPath::new(dir.join("Cargo.toml")).unwrap();
@@ -350,7 +350,7 @@ mod tests {
             let name = "project_with_no_abi";
             let dir = path.join(name);
             fs::create_dir_all(&dir).unwrap();
-            let result = new_contract_project(name, Some(path), None);
+            let result = new_contract_project(name, Some(path.join(name)), None);
             assert!(result.is_ok(), "Should succeed");
 
             let cargo_toml = dir.join("Cargo.toml");
@@ -375,7 +375,7 @@ mod tests {
             let name = "project_with_invalid_abi";
             let dir = path.join(name);
             fs::create_dir_all(&dir).unwrap();
-            let result = new_contract_project(name, Some(path), None);
+            let result = new_contract_project(name, Some(path.join(name)), None);
             assert!(result.is_ok(), "Should succeed");
 
             let cargo_toml = dir.join("Cargo.toml");

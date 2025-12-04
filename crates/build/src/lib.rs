@@ -1007,7 +1007,7 @@ mod unit_tests {
                 let name = "project_with_valid_config";
                 let dir = path.join(name);
                 fs::create_dir_all(&dir).unwrap();
-                let result = new_contract_project(name, Some(path), abi);
+                let result = new_contract_project(name, Some(path.join(name)), abi);
                 assert!(result.is_ok(), "Should succeed");
 
                 let manifest_path = ManifestPath::new(dir.join("Cargo.toml")).unwrap();
@@ -1044,7 +1044,7 @@ mod unit_tests {
                 let name = "project_with_invalid_config";
                 let dir = path.join(name);
                 fs::create_dir_all(&dir).unwrap();
-                let result = new_contract_project(name, Some(path), abi);
+                let result = new_contract_project(name, Some(path.join(name)), abi);
                 assert!(result.is_ok(), "Should succeed");
 
                 let manifest_path = ManifestPath::new(dir.join("Cargo.toml")).unwrap();
