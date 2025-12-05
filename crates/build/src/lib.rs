@@ -59,6 +59,7 @@ pub use self::{
         VerbosityFlags,
     },
     crate_metadata::CrateMetadata,
+    docker::ComposeBuildArgs,
     metadata::{
         BuildInfo,
         InkMetadataArtifacts,
@@ -575,7 +576,7 @@ fn validate_metadata_spec_for_abi(
 /// deploying.
 ///
 /// It does so by invoking `cargo build` and then post-processing the final binary.
-pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
+pub fn execute<T: ComposeBuildArgs>(args: ExecuteArgs) -> Result<BuildResult> {
     let ExecuteArgs {
         manifest_path,
         verbosity,
@@ -592,7 +593,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
 
     // if image exists, then --verifiable was called and we need to build inside docker.
     if build_mode == &BuildMode::Verifiable {
-        return docker_build(args)
+        return docker_build::<T>(args)
     }
 
     let crate_metadata =

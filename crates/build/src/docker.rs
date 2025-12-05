@@ -122,8 +122,14 @@ impl From<Option<String>> for ImageVariant {
     }
 }
 
+pub trait ComposeBuildArgs {
+    /// Takes CLI args from the host and appends them to the build command inside the
+    /// docker.
+    fn compose_build_args() -> Result<Vec<String>>;
+}
+
 /// Launches the docker container to execute verifiable build.
-pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
+pub fn docker_build<T: ComposeBuildArgs>(args: ExecuteArgs) -> Result<BuildResult> {
     let ExecuteArgs {
         manifest_path,
         verbosity,
@@ -139,7 +145,7 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             let crate_metadata =
                 CrateMetadata::collect_with_target_dir(&manifest_path, target_dir)?;
             let host_folder = std::env::current_dir()?;
-            let args = compose_build_args()?;
+            let args = T::compose_build_args()?;
 
             let client = Docker::connect_with_socket_defaults().map_err(|e| {
                 anyhow::anyhow!("{e}\nDo you have the docker engine installed in path?")
@@ -509,38 +515,6 @@ async fn run_build(
             "Failed to read build result from docker build"
         ))
     }
-}
-
-/// Takes CLI args from the host and appends them to the build command inside the docker.
-fn compose_build_args() -> Result<Vec<String>> {
-    use regex::Regex;
-    let mut args: Vec<String> = Vec::new();
-    // match `--image` or `verify` with arg with 1 or more white spaces surrounded
-    let rex = Regex::new(r#"(--image|verify)[ ]*[^ ]*[ ]*"#)?;
-    // we join the args together, so we can remove `--image <arg>`
-    // We skip the first captured argument (binary name), to allow other binaries use
-    // docker_build.
-    let args_string: String = std::env::args().skip(1).collect::<Vec<String>>().join(" ");
-    let args_string = rex.replace_all(&args_string, "").to_string();
-
-    // and then we turn it back to the vec, filtering out commands and arguments
-    // that should not be passed to the docker build command
-    let mut os_args: Vec<String> = args_string
-        .split_ascii_whitespace()
-        .filter(|a| {
-            a != &"--verifiable"
-                && !a.contains("cargo-contract")
-                && a != &"cargo"
-                && a != &"contract"
-                && a != &"build"
-                && a != &"--output-json"
-        })
-        .map(|s| s.to_string())
-        .collect();
-
-    args.append(&mut os_args);
-
-    Ok(args)
 }
 
 /// Pulls the docker image from the registry.
