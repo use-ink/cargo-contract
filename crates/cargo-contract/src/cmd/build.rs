@@ -19,6 +19,7 @@ use contract_build::{
     BuildArtifacts,
     BuildMode,
     BuildResult,
+    ComposeBuildArgs,
     ExecuteArgs,
     Features,
     ImageVariant,
@@ -35,6 +36,38 @@ use std::{
     convert::TryFrom,
     path::PathBuf,
 };
+
+pub(crate) struct CargoContractComposeBuildArgs;
+impl ComposeBuildArgs for CargoContractComposeBuildArgs {
+    fn compose_build_args() -> Result<Vec<String>> {
+        use regex::Regex;
+        let mut args: Vec<String> = Vec::new();
+        // match `--image` or `verify` with arg with 1 or more white spaces surrounded
+        let rex = Regex::new(r#"(--image|verify)[ ]*[^ ]*[ ]*"#)?;
+        // we join the args together, so we can remove `--image <arg>`
+        let args_string: String = std::env::args().collect::<Vec<String>>().join(" ");
+        let args_string = rex.replace_all(&args_string, "").to_string();
+
+        // and then we turn it back to the vec, filtering out commands and arguments
+        // that should not be passed to the docker build command
+        let mut os_args: Vec<String> = args_string
+            .split_ascii_whitespace()
+            .filter(|a| {
+                a != &"--verifiable"
+                    && !a.contains("cargo-contract")
+                    && a != &"cargo"
+                    && a != &"contract"
+                    && a != &"build"
+                    && a != &"--output-json"
+            })
+            .map(|s| s.to_string())
+            .collect();
+
+        args.append(&mut os_args);
+
+        Ok(args)
+    }
+}
 
 /// Executes build of the smart contract which produces a PolkaVM binary that is ready for
 /// deploying.
@@ -146,7 +179,7 @@ impl BuildCommand {
             metadata_spec: self.metadata,
             target_dir: None,
         };
-        contract_build::execute(args)
+        contract_build::execute::<CargoContractComposeBuildArgs>(args)
     }
 }
 
@@ -181,6 +214,6 @@ impl CheckCommand {
             target_dir: None,
         };
 
-        contract_build::execute(args)
+        contract_build::execute::<CargoContractComposeBuildArgs>(args)
     }
 }

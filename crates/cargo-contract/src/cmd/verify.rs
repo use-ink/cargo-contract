@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::cmd::build::CargoContractComposeBuildArgs;
 use anyhow::{
     Context,
     Result,
@@ -109,7 +110,7 @@ impl VerifyCommand {
             ..Default::default()
         };
 
-        let build_result = execute(args)?;
+        let build_result = execute::<CargoContractComposeBuildArgs>(args)?;
 
         // 4. Grab the code hash from the built contract and compare it with the reference
         //    one.
@@ -245,7 +246,7 @@ impl VerifyCommand {
             ..Default::default()
         };
 
-        let build_result = execute(args)?;
+        let build_result = execute::<CargoContractComposeBuildArgs>(args)?;
 
         // 4. Grab the code hash from the built contract and compare it with the reference
         //    code hash.
