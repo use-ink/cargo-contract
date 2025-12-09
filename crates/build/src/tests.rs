@@ -19,6 +19,7 @@ use crate::{
     BuildArtifacts,
     BuildMode,
     BuildResult,
+    ComposeBuildArgs,
     CrateMetadata,
     ExecuteArgs,
     InkMetadataArtifacts,
@@ -45,6 +46,13 @@ use std::{
     },
     time::SystemTime,
 };
+
+struct MockComposeBuildArgs;
+impl ComposeBuildArgs for MockComposeBuildArgs {
+    fn compose_build_args() -> Result<Vec<String>> {
+        Ok(Vec::new())
+    }
+}
 
 // All functions provided here are run sequentially as part of the same `#[test]`
 // sharing build artifacts (but nothing else) using the [`BuildTestContext`].
@@ -108,7 +116,7 @@ fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
         ..Default::default()
     };
 
-    let res = super::execute(args).expect("build failed");
+    let res = super::execute::<MockComposeBuildArgs>(args).expect("build failed");
 
     // our ci has set `CARGO_TARGET_DIR` to cache artifacts.
     // this dir does not include `/target/` as a path, hence
@@ -161,7 +169,7 @@ fn check_must_not_output_contract_artifacts_in_project_dir(
     };
 
     // when
-    super::execute(args).expect("build failed");
+    super::execute::<MockComposeBuildArgs>(args).expect("build failed");
 
     // then
     let project_dir = project_path(
@@ -195,7 +203,7 @@ fn building_template_in_debug_mode_must_work(manifest_path: &ManifestPath) -> Re
     };
 
     // when
-    let res = super::execute(args);
+    let res = super::execute::<MockComposeBuildArgs>(args);
 
     // then
     assert!(res.is_ok(), "building template in debug mode failed!");
@@ -214,7 +222,7 @@ fn building_template_in_release_mode_must_work(
     };
 
     // when
-    let res = super::execute(args);
+    let res = super::execute::<MockComposeBuildArgs>(args);
 
     // then
     assert!(res.is_ok(), "building template in release mode failed!");
@@ -244,7 +252,7 @@ fn building_contract_with_source_file_in_subfolder_must_work(
     };
 
     // when
-    let res = super::execute(args);
+    let res = super::execute::<MockComposeBuildArgs>(args);
 
     // then
     assert!(res.is_ok(), "building contract failed!");
@@ -273,7 +281,7 @@ fn building_contract_with_build_rs_must_work(manifest_path: &ManifestPath) -> Re
     };
 
     // when
-    let res = super::execute(args);
+    let res = super::execute::<MockComposeBuildArgs>(args);
 
     // then
     assert!(res.is_ok(), "building contract failed!");
@@ -291,7 +299,7 @@ fn keep_debug_symbols_in_debug_mode(manifest_path: &ManifestPath) -> Result<()> 
     };
 
     // todo
-    let _res = super::execute(args).expect("build failed");
+    let _res = super::execute::<MockComposeBuildArgs>(args).expect("build failed");
 
     // we specified that debug symbols should be kept
     // assert!(has_debug_symbols(res.dest_binary.unwrap()));
@@ -310,7 +318,7 @@ fn keep_debug_symbols_in_release_mode(manifest_path: &ManifestPath) -> Result<()
     };
 
     // todo
-    let _res = super::execute(args).expect("build failed");
+    let _res = super::execute::<MockComposeBuildArgs>(args).expect("build failed");
 
     // we specified that debug symbols should be kept
     // assert!(has_debug_symbols(res.dest_binary.unwrap()));
@@ -328,7 +336,7 @@ fn build_with_json_output_works(manifest_path: &ManifestPath) -> Result<()> {
     };
 
     // when
-    let res = super::execute(args).expect("build failed");
+    let res = super::execute::<MockComposeBuildArgs>(args).expect("build failed");
 
     // then
     assert!(res.serialize_json().is_ok());
@@ -355,7 +363,9 @@ fn missing_linting_toolchain_installation_must_be_detected(
         extra_lints: true,
         ..Default::default()
     };
-    let res = super::execute(args).map(|_| ()).unwrap_err();
+    let res = super::execute::<MockComposeBuildArgs>(args)
+        .map(|_| ())
+        .unwrap_err();
 
     // then
     assert!(format!("{res:?}").contains("` was not found!"));
@@ -418,7 +428,7 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     };
     args.manifest_path = manifest_path.clone();
 
-    let build_result = crate::execute(args)?;
+    let build_result = crate::execute::<MockComposeBuildArgs>(args)?;
     let dest_bundle = &ink_metadata_artifacts(
         build_result
             .metadata_result
@@ -539,7 +549,7 @@ fn generates_solidity_metadata(manifest_path: &ManifestPath) -> Result<()> {
     };
     args.manifest_path = manifest_path.clone();
 
-    let build_result = crate::execute(args)?;
+    let build_result = crate::execute::<MockComposeBuildArgs>(args)?;
     let metadata_result = solidity_metadata_artifacts(
         build_result
             .metadata_result
@@ -684,10 +694,11 @@ fn unchanged_contract_skips_optimization_and_metadata_steps(
     }
 
     // when
-    let res1 = super::execute(args.clone()).expect("build failed");
+    let res1 =
+        super::execute::<MockComposeBuildArgs>(args.clone()).expect("build failed");
     let (opt_result_modified1, metadata_modified1, contract_bundle_modified1) =
         get_last_modified(&res1);
-    let res2 = super::execute(args).expect("build failed");
+    let res2 = super::execute::<MockComposeBuildArgs>(args).expect("build failed");
     let (opt_result_modified2, metadata_modified2, contract_bundle_modified2) =
         get_last_modified(&res2);
 
@@ -711,7 +722,7 @@ fn unchanged_contract_skips_optimization_and_metadata_steps(
 fn unchanged_contract_no_metadata_artifacts_generates_metadata(
     manifest_path: &ManifestPath,
 ) -> Result<()> {
-    let res1 = super::execute(ExecuteArgs {
+    let res1 = super::execute::<MockComposeBuildArgs>(ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CodeOnly,
         ..Default::default()
@@ -724,7 +735,7 @@ fn unchanged_contract_no_metadata_artifacts_generates_metadata(
 
     let dest_binary_modified_pre = file_last_modified(&res1.dest_binary.unwrap());
 
-    let res2 = super::execute(ExecuteArgs {
+    let res2 = super::execute::<MockComposeBuildArgs>(ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::All,
         ..Default::default()
