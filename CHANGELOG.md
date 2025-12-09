@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]
 
+- `contract_build::execute`  now uses a generic type to specify how command line arguments are passed to verifiable builds - [2177](https://github.com/use-ink/cargo-contract/pull/2177)
+
 ## Version 6.0.0-beta.1
 
 ### Fixed
