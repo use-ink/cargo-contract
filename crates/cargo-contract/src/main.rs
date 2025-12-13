@@ -188,7 +188,11 @@ fn exec(cmd: Command) -> Result<()> {
             target_dir,
             abi,
         } => {
-            contract_build::new_contract_project(name, target_dir.as_ref(), *abi)?;
+            let dir = target_dir
+                .as_ref()
+                .map(|d| d.join(name))
+                .unwrap_or(std::env::current_dir()?.join(name));
+            contract_build::new_contract_project(name, Some(dir), *abi)?;
             println!("Created contract {name}");
             Ok(())
         }

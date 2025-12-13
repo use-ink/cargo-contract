@@ -833,8 +833,12 @@ impl BuildTestContext {
         working_project_name: &str,
         abi: Option<Abi>,
     ) -> Result<Self> {
-        crate::new_contract_project(working_project_name, Some(tmp_dir), abi)
-            .expect("new project creation failed");
+        crate::new_contract_project(
+            working_project_name,
+            Some(tmp_dir.join(working_project_name)),
+            abi,
+        )
+        .expect("new project creation failed");
         let working_dir = tmp_dir.join(working_project_name);
 
         let template_dir = tmp_dir.join(format!("{working_project_name}_template"));
