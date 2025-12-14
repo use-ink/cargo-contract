@@ -22,6 +22,10 @@ use contract_metadata::{
     compatibility::check_contract_ink_compatibility,
 };
 pub use lint::lint;
+use rustversion::{
+    before,
+    since,
+};
 
 // Hotfix for https://github.com/fizyk20/generic-array/issues/158.
 // Can be removed once there is a new release of https://github.com/RustCrypto,
@@ -366,6 +370,12 @@ fn exec_cargo_for_onchain_target(
         if build_mode == &BuildMode::Debug {
             features.push("ink/ink-debug".to_string());
         } else {
+            #[since(1.92)]
+            args.push(
+                "-Zunstable-options-Cpanic=immediate-abort-Zbuild-std-features=compiler-builtins-mem"
+                    .to_owned(),
+            );
+            #[before(1.92)]
             args.push(
                 "-Zbuild-std-features=panic_immediate_abort,compiler-builtins-mem"
                     .to_owned(),
