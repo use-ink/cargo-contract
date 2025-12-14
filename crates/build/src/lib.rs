@@ -371,15 +371,20 @@ fn exec_cargo_for_onchain_target(
             features.push("ink/ink-debug".to_string());
         } else {
             #[since(1.92)]
-            args.push(
-                "-Zunstable-options-Cpanic=immediate-abort-Zbuild-std-features=compiler-builtins-mem"
-                    .to_owned(),
-            );
+            fn set_args(args: &mut Vec<String>) {
+                args.push(
+                    "-Zunstable-options-Cpanic=immediate-abort-Zbuild-std-features=compiler-builtins-mem"
+                        .to_owned(),
+                );
+            }
             #[before(1.92)]
-            args.push(
-                "-Zbuild-std-features=panic_immediate_abort,compiler-builtins-mem"
-                    .to_owned(),
-            );
+            fn set_args(args: &mut Vec<String>) {
+                args.push(
+                    "-Zbuild-std-features=panic_immediate_abort,compiler-builtins-mem"
+                        .to_owned(),
+                );
+            }
+            set_args(&mut args);
         }
         features.append_to_args(&mut args);
         let mut env = Vec::new();
