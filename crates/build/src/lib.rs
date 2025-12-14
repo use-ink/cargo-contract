@@ -107,6 +107,11 @@ use semver::Version;
 /// Version of the currently executing `cargo-contract` binary.
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
+#[since(1.92)]
+const PANIC_IMMEDIATE_ABORT: &str = "-Zunstable-options\x1f-Cpanic=immediate-abort";
+#[before(1.92)]
+const PANIC_IMMEDIATE_ABORT: &str = "";
+
 /// Result of linking an ELF with PolkaVM.
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct LinkerSizeResult {
@@ -372,10 +377,7 @@ fn exec_cargo_for_onchain_target(
         } else {
             #[since(1.92)]
             fn set_args(args: &mut Vec<String>) {
-                args.push(
-                    "-Zunstable-options\x1f-Cpanic=immediate-abort\x1f-Zbuild-std-features=compiler-builtins-mem"
-                        .to_owned(),
-                );
+                args.push("-Zbuild-std-features=compiler-builtins-mem".to_owned());
             }
             #[before(1.92)]
             fn set_args(args: &mut Vec<String>) {
@@ -403,7 +405,7 @@ fn exec_cargo_for_onchain_target(
         let mut rustflags = {
             let common_flags = "-Clinker-plugin-lto\x1f-Clink-arg=-zstack-size=4096";
             if let Some(target_flags) = Target::rustflags() {
-                format!("{common_flags}\x1f{target_flags}")
+                format!("{common_flags}\x1f{target_flags}\x1f{PANIC_IMMEDIATE_ABORT}")
             } else {
                 common_flags.to_string()
             }
