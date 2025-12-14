@@ -373,7 +373,7 @@ fn exec_cargo_for_onchain_target(
             #[since(1.92)]
             fn set_args(args: &mut Vec<String>) {
                 args.push(
-                    "-Zunstable-options-Cpanic=immediate-abort-Zbuild-std-features=compiler-builtins-mem"
+                    "-Zunstable-options\x1f-Cpanic=immediate-abort\x1f-Zbuild-std-features=compiler-builtins-mem"
                         .to_owned(),
                 );
             }
