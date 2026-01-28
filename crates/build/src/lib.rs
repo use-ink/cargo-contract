@@ -404,11 +404,18 @@ fn exec_cargo_for_onchain_target(
         // warnings.
         let mut rustflags = {
             let common_flags = "-Clinker-plugin-lto\x1f-Clink-arg=-zstack-size=4096";
-            if let Some(target_flags) = Target::rustflags() {
-                format!("{common_flags}\x1f{target_flags}\x1f{PANIC_IMMEDIATE_ABORT}")
+            let mut flags = if let Some(target_flags) = Target::rustflags() {
+                format!("{common_flags}\x1f{target_flags}")
             } else {
                 common_flags.to_string()
+            };
+            // Only add panic=immediate-abort for release builds to match previous
+            // behavior
+            if build_mode != &BuildMode::Debug && !PANIC_IMMEDIATE_ABORT.is_empty() {
+                flags.push('\x1f');
+                flags.push_str(PANIC_IMMEDIATE_ABORT);
             }
+            flags
         };
         // Sets ABI `cfg` flags (if necessary).
         if let Some(abi) = crate_metadata.abi {
