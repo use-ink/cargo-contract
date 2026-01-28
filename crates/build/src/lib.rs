@@ -410,7 +410,10 @@ fn exec_cargo_for_onchain_target(
                 common_flags.to_string()
             };
             // Only add panic=immediate-abort for release builds to match previous
-            // behavior
+            // behavior. The `is_empty()` check is needed for Rust < 1.92 where
+            // `PANIC_IMMEDIATE_ABORT` is empty (via `rustversion` compile-time
+            // selection).
+            #[allow(clippy::const_is_empty)]
             if build_mode != &BuildMode::Debug && !PANIC_IMMEDIATE_ABORT.is_empty() {
                 flags.push('\x1f');
                 flags.push_str(PANIC_IMMEDIATE_ABORT);
