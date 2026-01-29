@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]
 
+## Version 6.0.0-beta.2
+
 ### Added
 - Allow `contract_build::execute` to specify how cli arguments are passed to verifiable builds ‒ [2177](https://github.com/use-ink/cargo-contract/pull/2177)
 - Allow specifying directory name for contract ‒ [2176](https://github.com/use-ink/cargo-contract/pull/2176)
