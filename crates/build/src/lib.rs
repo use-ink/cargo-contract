@@ -22,6 +22,10 @@ use contract_metadata::{
     compatibility::check_contract_ink_compatibility,
 };
 pub use lint::lint;
+use rustversion::{
+    before,
+    since,
+};
 
 // Hotfix for https://github.com/fizyk20/generic-array/issues/158.
 // Can be removed once there is a new release of https://github.com/RustCrypto,
@@ -102,6 +106,11 @@ use semver::Version;
 
 /// Version of the currently executing `cargo-contract` binary.
 const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+#[since(1.92)]
+const PANIC_IMMEDIATE_ABORT: &str = "-Zunstable-options\x1f-Cpanic=immediate-abort";
+#[before(1.92)]
+const PANIC_IMMEDIATE_ABORT: &str = "";
 
 /// Result of linking an ELF with PolkaVM.
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -366,10 +375,18 @@ fn exec_cargo_for_onchain_target(
         if build_mode == &BuildMode::Debug {
             features.push("ink/ink-debug".to_string());
         } else {
-            args.push(
-                "-Zbuild-std-features=panic_immediate_abort,compiler-builtins-mem"
-                    .to_owned(),
-            );
+            #[since(1.92)]
+            fn set_args(args: &mut Vec<String>) {
+                args.push("-Zbuild-std-features=compiler-builtins-mem".to_owned());
+            }
+            #[before(1.92)]
+            fn set_args(args: &mut Vec<String>) {
+                args.push(
+                    "-Zbuild-std-features=panic_immediate_abort,compiler-builtins-mem"
+                        .to_owned(),
+                );
+            }
+            set_args(&mut args);
         }
         features.append_to_args(&mut args);
         let mut env = Vec::new();
@@ -387,11 +404,21 @@ fn exec_cargo_for_onchain_target(
         // warnings.
         let mut rustflags = {
             let common_flags = "-Clinker-plugin-lto\x1f-Clink-arg=-zstack-size=4096";
-            if let Some(target_flags) = Target::rustflags() {
+            let mut flags = if let Some(target_flags) = Target::rustflags() {
                 format!("{common_flags}\x1f{target_flags}")
             } else {
                 common_flags.to_string()
+            };
+            // Only add panic=immediate-abort for release builds to match previous
+            // behavior. The `is_empty()` check is needed for Rust < 1.92 where
+            // `PANIC_IMMEDIATE_ABORT` is empty (via `rustversion` compile-time
+            // selection).
+            #[allow(clippy::const_is_empty)]
+            if build_mode != &BuildMode::Debug && !PANIC_IMMEDIATE_ABORT.is_empty() {
+                flags.push('\x1f');
+                flags.push_str(PANIC_IMMEDIATE_ABORT);
             }
+            flags
         };
         // Sets ABI `cfg` flags (if necessary).
         if let Some(abi) = crate_metadata.abi {

@@ -6,7 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]
 
-- `contract_build::execute`  now uses a generic type to specify how command line arguments are passed to verifiable builds - [2177](https://github.com/use-ink/cargo-contract/pull/2177)
+### Added
+- Allow `contract_build::execute` to specify how cli arguments are passed to verifiable builds ‒ [2177](https://github.com/use-ink/cargo-contract/pull/2177)
+- Allow specifying directory name for contract ‒ [2176](https://github.com/use-ink/cargo-contract/pull/2176)
+
+### Fixed
+- Make `cargo-contract` compatible with Rust 1.92 ‒ [2178](https://github.com/use-ink/cargo-contract/pull/2178)
+- Allow verifiable builds from CLIs that are not `cargo-contract` ‒ [2172](https://github.com/use-ink/cargo-contract/pull/2172)
 
 ## Version 6.0.0-beta.1
 
