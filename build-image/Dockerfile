@@ -30,7 +30,7 @@ LABEL ink.use.image.vendor="Use Ink" \
     ink.use.image.title="useink/contracts-verifiable" \
     ink.use.image.description="Inherits from debian:stable-slim. \
     rust nightly, clippy, rustfmt, miri, rust-src, rustc-dev, grcov, rust-covfix, \
-    llvm-tools-preview, cargo-contract, xargo, binaryen, parallel, codecov, ink, solang" \
+    llvm-tools-preview, cargo-contract, binaryen, parallel, codecov, ink, solang" \
     ink.use.image.documentation="https://github.com/use-ink/cargo-contract/blob/master/\
     build-image/README.md" \
     ink.use.version.rust=${RUST_VERSION} \
