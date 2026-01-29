@@ -1,6 +1,6 @@
 [package]
 name = "contract-extrinsics"
-version = "6.0.0-beta.1"
+version = "6.0.0-beta.2"
 authors = ["Use Ink <ink@use.ink>"]
 edition = "2024"
 rust-version.workspace = true
@@ -15,9 +15,9 @@ keywords = ["polkavm", "ink", "riscv", "blockchain", "edsl"]
 include = ["Cargo.toml", "*.rs", "LICENSE"]
 
 [dependencies]
-contract-build = { version = "6.0.0-beta.1", path = "../build" }
-contract-metadata = { version = "6.0.0-beta.1", path = "../metadata" }
-contract-transcode = { version = "6.0.0-beta.1", path = "../transcode" }
+contract-build = { version = "6.0.0-beta.2", path = "../build" }
+contract-metadata = { version = "6.0.0-beta.2", path = "../metadata" }
+contract-transcode = { version = "6.0.0-beta.2", path = "../transcode" }
 
 anyhow = "1.0.100"
 itertools = { version = "0.14", default-features = false }
