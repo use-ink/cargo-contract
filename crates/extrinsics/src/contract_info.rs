@@ -281,7 +281,7 @@ where
         &self.code_hash
     }
 
-    /// Return the number of storage items of the contract.
+    /// Return the number of storage bytes of the contract.
     pub fn storage_bytes(&self) -> u32 {
         self.storage_bytes
     }
