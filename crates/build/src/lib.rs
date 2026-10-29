@@ -325,7 +325,7 @@ fn exec_cargo_for_onchain_target(
         let rustflags = {
             let common_flags = "-Clinker-plugin-lto";
             if let Some(target_flags) = target.rustflags() {
-                format!("{}\x1f{}", common_flags, target_flags)
+                format!("{common_flags}\x1f{target_flags}")
             } else {
                 common_flags.to_string()
             }

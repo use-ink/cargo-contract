@@ -320,7 +320,7 @@ impl Manifest {
             map.insert("rev".into(), crate::linting::GIT_REV.into());
             map.insert(
                 "pattern".into(),
-                value::Value::String(format!("linting/{}", lib_name)),
+                value::Value::String(format!("linting/{lib_name}")),
             );
             value::Value::Table(map)
         };

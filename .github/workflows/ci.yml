@@ -3,32 +3,35 @@ on:
   pull_request:
   push:
     branches:
-      - master
+      - v5.x.x
     tags:
       - v*
     paths-ignore:
       - 'README.md'
       - 'CHANGELOG.md'
+permissions:
+  contents: read
+
+env:
+  RUSTUP_TOOLCHAIN: 1.88.0
+  CMAKE_POLICY_VERSION_MINIMUM: "3.5"
+
+defaults:
+  run:
+    shell: bash
+
 jobs:
   fmt:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - name: Install toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          default: true
-          components: rustfmt
-
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Install formatter
+        run: rustup toolchain install nightly-2026-10-29 --profile minimal --component rustfmt
 
       - name: Check Formatting
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --check
+        run: cargo +nightly-2026-10-29 fmt --all -- --check
 
   # Runs `cargo check` on each individual crate in the `crates` directory.
   #
@@ -47,112 +50,70 @@ jobs:
   # may occur there, but otherwise would not be caught by the `test` and
   # `clippy` commands which operate on the workspace and enable all targets.
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
       - name: Install toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
+        run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal --component rust-src,clippy --target wasm32-unknown-unknown
 
       - name: Cache
-        uses: Swatinem/rust-cache@v2
-
-      - name: Checkout
-        uses: actions/checkout@v4
+        uses: Swatinem/rust-cache@e9d7b9f1e587218970671bac74e5511ed9506e6a # v2
 
       - name: Check each crate
         run: |
           for crate in ./crates/*/; do
             echo "Checking $crate";
-            cargo check --manifest-path ${crate}/Cargo.toml;
+            cargo check --locked --manifest-path "${crate}/Cargo.toml";
           done
 
   clippy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
       - name: Install toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          default: true
-          components: clippy
+        run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal --component rust-src,clippy --target wasm32-unknown-unknown
 
       - name: Cache
-        uses: Swatinem/rust-cache@v2
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-        # Check permissions of GITHUB_TOKEN, workaround for permission issues
-        # with @dependabot PRs. See https://github.com/actions-rs/clippy-check/issues/2#issuecomment-807878478
-      - name: Check workflow permissions
-        id: check_permissions
-        uses: scherermichael-oss/action-has-permission@1.0.6
-        with:
-          required-permission: write
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: Swatinem/rust-cache@e9d7b9f1e587218970671bac74e5511ed9506e6a # v2
 
       - name: Clippy with features
-        uses: actions-rs/clippy-check@v1
-        if: ${{ steps.check_permissions.outputs.has-permission }}
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --profile debug-ci --all-features --all-targets -- -D warnings
+        run: cargo clippy --locked --profile debug-ci --all-features --all-targets -- -D warnings
 
       - name: Clippy without features
-        if: ${{ steps.check_permissions.outputs.has-permission }}
-        uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --profile debug-ci --all-targets -- -D warnings
-
-        # Runs if the GITHUB_TOKEN does not have `write` permissions e.g. @dependabot
-      - name: Clippy with features (no annotations)
-        if: ${{ !steps.check_permissions.outputs.has-permission }}
-        run: cargo clippy --profile debug-ci --all-features --all-targets -- -D warnings
-
-        # Runs if the GITHUB_TOKEN does not have `write` permissions e.g. @dependabot
-      - name: Clippy without features (no annotations)
-        if: ${{ !steps.check_permissions.outputs.has-permission }}
-        run: cargo clippy --profile debug-ci --all-targets -- -D warnings
+        run: cargo clippy --locked --profile debug-ci --all-targets -- -D warnings
 
   build-tests:
     strategy:
       fail-fast: false
       matrix:
-        # We want newer versions than 'latest' here to have current wasm-opt
-        os: ["ubuntu-22.04", "macos-12"]
+        os: ["ubuntu-24.04", "macos-15"]
     runs-on: ${{ matrix.os }}
     env:
       RUST_BACKTRACE: full
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          default: true
-          target: wasm32-unknown-unknown
-          components: rust-src, clippy
+      - name: Install toolchain
+        run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal --component rust-src,clippy --target wasm32-unknown-unknown
 
       - name: Cache
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@e9d7b9f1e587218970671bac74e5511ed9506e6a # v2
 
       - name: Install nextest
-        uses: taiki-e/install-action@v2.45.15
+        uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
         with:
-          tool: nextest
+          tool: nextest@0.9.150
+          fallback: none
 
       - name: Build and archive tests
-        run: cargo nextest archive --cargo-profile debug-ci --workspace --all-features --archive-file nextest-archive-${{ matrix.os }}.tar.zst
+        run: cargo nextest archive --locked --cargo-profile debug-ci --workspace --all-features --archive-file nextest-archive-${{ matrix.os }}.tar.zst
       - name: Upload archive to workflow
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: nextest-archive-${{ matrix.os }}
           path: nextest-archive-${{ matrix.os }}.tar.zst
@@ -162,35 +123,29 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # We want newer versions than 'latest' here to have current wasm-opt
-        os: ["ubuntu-22.04", "macos-12"]
+        os: ["ubuntu-24.04", "macos-15"]
         partition: [1, 2]
     runs-on: ${{ matrix.os }}
     env:
       RUST_BACKTRACE: full
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          default: true
-          target: wasm32-unknown-unknown
-          components: rust-src, clippy
+      - name: Install toolchain
+        run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal --component rust-src,clippy --target wasm32-unknown-unknown
 
       - name: Cache
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@e9d7b9f1e587218970671bac74e5511ed9506e6a # v2
 
       - name: Install nextest
-        uses: taiki-e/install-action@v2.45.15
+        uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
         with:
-          tool: nextest
+          tool: nextest@0.9.150
+          fallback: none
 
       - name: Download archive
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: nextest-archive-${{ matrix.os }}
 
@@ -206,41 +161,35 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # We want newer versions than 'latest' here to have current wasm-opt
-        os: ["ubuntu-22.04", "macos-12"]
+        os: ["ubuntu-24.04", "macos-15"]
         partition: [1, 2]
     runs-on: ${{ matrix.os }}
     env:
       RUST_BACKTRACE: full
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          default: true
-          target: wasm32-unknown-unknown
-          components: rust-src, clippy
+      - name: Install toolchain
+        run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal --component rust-src,clippy --target wasm32-unknown-unknown
 
       - name: Cache
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@e9d7b9f1e587218970671bac74e5511ed9506e6a # v2
 
       - name: Install nextest
-        uses: taiki-e/install-action@v2.45.15
+        uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
         with:
-          tool: nextest
+          tool: nextest@0.9.150
+          fallback: none
 
       - name: Download archive
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: nextest-archive-${{ matrix.os }}
 
-      - name: Install latest `substrate-contracts-node` binary
+      - name: Install ink v5 contracts node
         env:
-          CONTRACTS_NODE_URL: https://github.com/paritytech/substrate-contracts-node/releases/latest/download/substrate-contracts-node-
+          CONTRACTS_NODE_URL: https://github.com/paritytech/substrate-contracts-node/releases/download/v0.42.0/substrate-contracts-node-
         run: |
           if [ "$RUNNER_OS" == "Linux" ]; then
               CONTRACTS_NODE_OS=linux
@@ -250,7 +199,7 @@ jobs:
               echo "$RUNNER_OS not supported"
               exit 1
           fi
-          curl -L -o substrate-contracts-node.tar.gz "$CONTRACTS_NODE_URL$CONTRACTS_NODE_OS.tar.gz"
+          curl --fail --location --retry 3 -o substrate-contracts-node.tar.gz "$CONTRACTS_NODE_URL$CONTRACTS_NODE_OS.tar.gz"
           tar xfzv substrate-contracts-node.tar.gz
           chmod +x artifacts/substrate-contracts-node-*/substrate-contracts-node &&
           mv artifacts/substrate-contracts-node-*/substrate-contracts-node /usr/local/bin
@@ -264,40 +213,29 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # We want newer versions than 'latest' here to have current wasm-opt
-        os: ["ubuntu-22.04", "macos-12", "windows-2022"]
+        os: ["ubuntu-24.04", "macos-15", "windows-2022"]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - name: Install nightly toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly-2023-12-28
-
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          default: true
-          components: rust-src
+      - name: Install toolchains
+        run: |
+          rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal --component rust-src,clippy --target wasm32-unknown-unknown
+          rustup toolchain install nightly-2024-09-05 --profile minimal --component rust-src,rustc-dev,llvm-tools-preview
 
       - name: Cache
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@e9d7b9f1e587218970671bac74e5511ed9506e6a # v2
+
+      - name: Install ink v5 linter
+        run: cargo +nightly-2024-09-05 install cargo-dylint dylint-link --version 3.2.1 --locked
 
       - name: Check Template
-        run: >-
-          # The linter requires two crates
-          cargo install cargo-dylint dylint-link
-          cargo -vV &&
-          cargo run --profile debug-ci -- contract --version &&
-          cargo run --profile debug-ci -- contract new --target-dir ${{ runner.temp }} foobar &&
-          # Build with linting
-          cargo run --profile debug-ci -- contract build --lint --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
-          cargo run --profile debug-ci -- contract check --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
-          cargo run --profile debug-ci -- contract build --manifest-path=${{ runner.temp }}/foobar/Cargo.toml --release &&
-          # Run tests
-          cargo test --profile debug-ci --all-features -- --test-threads=1
+        run: |
+          cargo -vV
+          cargo run --locked --profile debug-ci -- contract --version
+          cargo run --locked --profile debug-ci -- contract new --target-dir "$RUNNER_TEMP" foobar
+          cargo run --locked --profile debug-ci -- contract build --lint --manifest-path="$RUNNER_TEMP/foobar/Cargo.toml"
+          cargo run --locked --profile debug-ci -- contract check --manifest-path="$RUNNER_TEMP/foobar/Cargo.toml"
+          cargo run --locked --profile debug-ci -- contract build --manifest-path="$RUNNER_TEMP/foobar/Cargo.toml" --release
+          cargo test --manifest-path="$RUNNER_TEMP/foobar/Cargo.toml"
