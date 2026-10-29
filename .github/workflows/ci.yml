@@ -234,6 +234,8 @@ jobs:
           cargo -vV
           cargo run --locked --profile debug-ci -- contract --version
           cargo run --locked --profile debug-ci -- contract new --target-dir "$RUNNER_TEMP" foobar
+          # Reuse the workspace's v5-compatible dependency versions.
+          cp Cargo.lock "$RUNNER_TEMP/foobar/Cargo.lock"
           cargo run --locked --profile debug-ci -- contract build --lint --verbose --manifest-path="$RUNNER_TEMP/foobar/Cargo.toml"
           cargo run --locked --profile debug-ci -- contract check --manifest-path="$RUNNER_TEMP/foobar/Cargo.toml"
           cargo run --locked --profile debug-ci -- contract build --manifest-path="$RUNNER_TEMP/foobar/Cargo.toml" --release
