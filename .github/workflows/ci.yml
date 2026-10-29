@@ -201,8 +201,7 @@ jobs:
           fi
           curl --fail --location --retry 3 -o substrate-contracts-node.tar.gz "$CONTRACTS_NODE_URL$CONTRACTS_NODE_OS.tar.gz"
           tar xfzv substrate-contracts-node.tar.gz
-          chmod +x artifacts/substrate-contracts-node-*/substrate-contracts-node &&
-          mv artifacts/substrate-contracts-node-*/substrate-contracts-node /usr/local/bin
+          install -m 755 substrate-contracts-node-*/substrate-contracts-node /usr/local/bin/substrate-contracts-node
         shell: bash
 
       - name: Run integration tests
@@ -235,7 +234,7 @@ jobs:
           cargo -vV
           cargo run --locked --profile debug-ci -- contract --version
           cargo run --locked --profile debug-ci -- contract new --target-dir "$RUNNER_TEMP" foobar
-          cargo run --locked --profile debug-ci -- contract build --lint --manifest-path="$RUNNER_TEMP/foobar/Cargo.toml"
+          cargo run --locked --profile debug-ci -- contract build --lint --verbose --manifest-path="$RUNNER_TEMP/foobar/Cargo.toml"
           cargo run --locked --profile debug-ci -- contract check --manifest-path="$RUNNER_TEMP/foobar/Cargo.toml"
           cargo run --locked --profile debug-ci -- contract build --manifest-path="$RUNNER_TEMP/foobar/Cargo.toml" --release
           cargo test --manifest-path="$RUNNER_TEMP/foobar/Cargo.toml"
