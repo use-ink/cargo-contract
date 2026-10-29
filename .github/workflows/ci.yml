@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 env:
-  RUSTUP_TOOLCHAIN: 1.88.0
+  RUSTUP_TOOLCHAIN: 1.86.0
   CMAKE_POLICY_VERSION_MINIMUM: "3.5"
 
 defaults:
@@ -228,7 +228,7 @@ jobs:
         uses: Swatinem/rust-cache@e9d7b9f1e587218970671bac74e5511ed9506e6a # v2
 
       - name: Install ink v5 linter
-        run: cargo +nightly-2024-09-05 install cargo-dylint dylint-link --version 3.2.1 --locked
+        run: cargo install cargo-dylint dylint-link --version 4.0.1 --locked
 
       - name: Check Template
         run: |
