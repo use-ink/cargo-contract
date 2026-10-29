@@ -61,13 +61,12 @@ impl WasmOptHandler {
 
         OptimizationOptions::from(self.optimization_level)
             .mvp_features_only()
-            // Since rustc 1.70 `SignExt` can't be disabled anymore. Hence we have to
-            // allow it, in order that the Wasm binary containing these instructions can
-            // be loaded.
+            // Since rustc 1.70 `SignExt` can't be disabled anymore. Hence we have to allow it,
+            // in order that the Wasm binary containing these instructions can be loaded.
             .enable_feature(Feature::SignExt)
-            // This pass will then remove any `signext` instructions in order that the
-            // resulting Wasm binary is compatible with older versions of
-            // `pallet-contracts` which do not support the `signext` instruction.
+            // This pass will then remove any `signext` instructions in order that the resulting
+            // Wasm binary is compatible with older versions of `pallet-contracts` which do not
+            // support the `signext` instruction.
             .add_pass(Pass::SignextLowering)
             // the memory in our module is imported, `wasm-opt` needs to be told that
             // the memory is initialized to zeroes, otherwise it won't run the
