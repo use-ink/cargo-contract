@@ -6,9 +6,7 @@ edition = "2021"
 
 [dependencies]
 ink = { version = "5.1.1", default-features = false }
-
-[dev-dependencies]
-ink_e2e = { version = "5.1.1" }
+ink_e2e = { version = "5.1.1", optional = true }
 
 [lib]
 path = "lib.rs"
@@ -19,4 +17,4 @@ std = [
     "ink/std",
 ]
 ink-as-dependency = []
-e2e-tests = []
+e2e-tests = ["dep:ink_e2e"]
