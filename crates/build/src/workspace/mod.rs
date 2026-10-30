@@ -136,7 +136,9 @@ impl Workspace {
 
         // copy the `Cargo.lock` file
         let src_lockfile = self.workspace_root.clone().join("Cargo.lock");
-        let dest_lockfile = tmp_dir.path().join("Cargo.lock");
+        let dest_lockfile = tmp_root_manifest_path
+            .absolute_directory()?
+            .join("Cargo.lock");
         if src_lockfile.exists() {
             tracing::debug!(
                 "Copying '{}' to ' '{}'",
