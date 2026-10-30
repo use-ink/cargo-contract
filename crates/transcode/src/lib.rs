@@ -229,7 +229,7 @@ impl ContractMessageTranscoder {
                 let possible_values: Vec<_> = constructors.chain(messages).collect();
                 let help_txt = did_you_mean(name, possible_values.clone())
                     .first()
-                    .map(|suggestion| format!("Did you mean '{}'?", suggestion))
+                    .map(|suggestion| format!("Did you mean '{suggestion}'?"))
                     .unwrap_or_else(|| {
                         format!("Should be one of: {}", possible_values.iter().join(", "))
                     });

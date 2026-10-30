@@ -520,7 +520,7 @@ async fn api_build_upload_instantiate_call() {
         .decode_message_return(call.message(), &mut &ret_val.data[..])
         .unwrap()
         .to_string();
-    assert!(value.contains("true"), "{:#?}", value);
+    assert!(value.contains("true"), "{value:#?}");
 
     // call the contract on the immutable "get" message trying to execute
     // this should fail because "get" is immutable
@@ -551,7 +551,7 @@ async fn api_build_upload_instantiate_call() {
     .unwrap()
     .to_json()
     .unwrap();
-    assert!(output.contains("ExtrinsicSuccess"), "{:#?}", output);
+    assert!(output.contains("ExtrinsicSuccess"), "{output:#?}");
 
     // call the contract
     // make sure the value has been flipped
@@ -573,7 +573,7 @@ async fn api_build_upload_instantiate_call() {
         .decode_message_return(call.message(), &mut &ret_val.data[..])
         .unwrap()
         .to_string();
-    assert!(value.contains("false"), "{:#?}", value);
+    assert!(value.contains("false"), "{value:#?}");
 
     // prevent the node_process from being dropped and killed
     let _ = node_process;

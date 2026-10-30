@@ -331,7 +331,7 @@ pub fn display_all_contracts<AccountId>(contracts: &[AccountId])
 where
     AccountId: Display,
 {
-    contracts.iter().for_each(|e: &AccountId| println!("{}", e))
+    contracts.iter().for_each(|e: &AccountId| println!("{e}"))
 }
 
 /// Parse a balance from string format
@@ -371,16 +371,15 @@ where
 pub fn prompt_confirm_unverifiable_upload(chain: &str) -> Result<()> {
     println!("{}", "Confirm upload:".bright_white().bold());
     let warning = format!(
-        "Warning: You are about to upload unverifiable code to {} mainnet.\n\
+        "Warning: You are about to upload unverifiable code to {chain} mainnet.\n\
         A third party won't be able to confirm that your uploaded contract Wasm blob \
         matches a particular contract source code.\n\n\
         You can use `cargo contract build --verifiable` to make the contract verifiable.\n\
-        See https://use.ink/basics/contract-verification for more info.",
-        chain
+        See https://use.ink/basics/contract-verification for more info."
     )
     .bold()
     .yellow();
-    print!("{}", warning);
+    print!("{warning}");
     println!(
         "{} ({}): ",
         "\nContinue?".bright_white().bold(),

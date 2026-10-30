@@ -177,7 +177,7 @@ impl UploadCommand {
                     });
                     println!("{}", serde_json::to_string_pretty(&json_object)?);
                 } else {
-                    println!("{}", output_events);
+                    println!("{output_events}");
                     name_value_println!("Code hash", format!("{:?}", code_hash));
                 }
             } else {

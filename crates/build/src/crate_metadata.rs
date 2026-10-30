@@ -78,7 +78,7 @@ impl CrateMetadata {
         if let Some(lib_name) = &root_package
             .targets
             .iter()
-            .find(|target| target.kind.iter().any(|f| *f == TargetKind::Lib))
+            .find(|target| target.kind.contains(&TargetKind::Lib))
         {
             if lib_name.name != root_package.name {
                 // warn user if they still specify a lib name different from the
@@ -219,7 +219,6 @@ fn get_cargo_toml_metadata(manifest_path: &ManifestPath) -> Result<ExtraMetadata
             .map(Url::parse)
             .transpose()
             .context(format!("{field_name} should be a valid URL"))
-            .map_err(Into::into)
     };
 
     let documentation = get_url("documentation")?;

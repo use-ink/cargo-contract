@@ -185,10 +185,10 @@ impl Display for CodeHash {
         let raw_string = self
             .0
             .iter()
-            .map(|b| format!("{:x?}", b))
+            .map(|b| format!("{b:x?}"))
             .collect::<Vec<String>>()
             .join("");
-        f.write_fmt(format_args!("0x{}", raw_string))
+        f.write_fmt(format_args!("0x{raw_string}"))
     }
 }
 
