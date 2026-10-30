@@ -113,12 +113,12 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Ensure it is kept up-to-date when updating `cargo-contract`.
 pub(crate) mod linting {
     /// Toolchain used to build ink_linting:
-    /// https://github.com/use-ink/ink/blob/master/linting/rust-toolchain.toml
+    /// https://github.com/use-ink/ink/blob/v5.x/linting/rust-toolchain.toml
     pub const TOOLCHAIN_VERSION: &str = "nightly-2024-09-05";
     /// Git repository with ink_linting libraries
     pub const GIT_URL: &str = "https://github.com/use-ink/ink/";
     /// Git revision number of the linting crate
-    pub const GIT_REV: &str = "e5f559e7e1f14cfda147e05eb4269333bbd1e57c";
+    pub const GIT_REV: &str = "40d6f5d388595397a97ba0a337ee8ab6ffe2cf7a";
 }
 
 /// Arguments to use when executing `build` or `check` commands.
