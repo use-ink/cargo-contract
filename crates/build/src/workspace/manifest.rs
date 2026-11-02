@@ -253,7 +253,7 @@ impl Manifest {
     }
 
     /// Get mutable reference to `[profile.release]` section
-    fn profile_release_table_mut(&mut self) -> Result<&mut value::Table> {
+    pub(crate) fn profile_release_table_mut(&mut self) -> Result<&mut value::Table> {
         let profile = self
             .toml
             .entry("profile")

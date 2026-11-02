@@ -86,6 +86,146 @@ build_tests!(
     unchanged_contract_no_metadata_artifacts_generates_metadata
 );
 
+#[test]
+fn local_dependencies_keep_their_identity_and_build_inputs() -> Result<()> {
+    let temporary = tempfile::tempdir()?;
+    for (package, library, profile, config) in [
+        ("path_contract", "path_contract", "\"z\"", false),
+        ("path-contract", "custom_library", "2", false),
+        ("config_contract", "config_contract", "2", true),
+    ] {
+        let mut binaries = Vec::new();
+        for name in ["first", "second"] {
+            let root = temporary.path().join(package).join(name);
+            fs::create_dir_all(root.join("contract"))?;
+            fs::create_dir_all(root.join("dependency"))?;
+            fs::write(
+                root.join("Cargo.toml"),
+                r#"
+            [workspace]
+            resolver = "2"
+            members = ["contract", "dependency"]
+            [profile.release]
+            PROFILE
+        "#
+                .replace(
+                    "PROFILE",
+                    &if config {
+                        String::new()
+                    } else {
+                        format!("opt-level = {profile}")
+                    },
+                ),
+            )?;
+            if config {
+                fs::create_dir_all(root.join(".cargo"))?;
+                fs::write(
+                    root.join(".cargo/config.toml"),
+                    format!("[profile.release]\nopt-level = {profile}\n"),
+                )?;
+            }
+            fs::write(
+                root.join("contract/Cargo.toml"),
+                r#"
+            [package]
+            name = "PACKAGE"
+            version = "0.1.0"
+            edition = "2021"
+            [lib]
+            name = "LIBRARY"
+            path = "lib.rs"
+            [dependencies]
+            ink = { path = "../dependency" }
+        "#
+                .replace("PACKAGE", package)
+                .replace("LIBRARY", library),
+            )?;
+            // Only Cargo identity is relevant here; avoid fetching the ink dependency
+            // tree.
+            fs::write(
+                root.join("dependency/Cargo.toml"),
+                r#"
+            [package]
+            name = "ink"
+            version = "5.1.1"
+            edition = "2021"
+            [lib]
+            path = "lib.rs"
+        "#,
+            )?;
+            fs::write(root.join("dependency/marker"), "local input")?;
+            fs::write(
+                root.join("dependency/lib.rs"),
+                r#"
+            #![no_std]
+            pub struct Marker;
+            pub const INPUT: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/marker"));
+        "#,
+            )?;
+            fs::write(
+                root.join("dependency/build.rs"),
+                r#"
+            fn main() {
+                assert_eq!(std::fs::read_to_string("marker").unwrap(), "local input");
+                let expected = std::fs::read_to_string("opt-level").unwrap();
+                assert_eq!(std::env::var("OPT_LEVEL").unwrap(), expected);
+            }
+        "#,
+            )?;
+            fs::write(
+                root.join("dependency/opt-level"),
+                std::env::var("CARGO_PROFILE_RELEASE_OPT_LEVEL")
+                    .unwrap_or_else(|_| profile.trim_matches('"').into()),
+            )?;
+            fs::write(
+                root.join("contract/lib.rs"),
+                r#"
+            #![no_std]
+            #![no_main]
+            use core::hash::{Hash, Hasher};
+            struct Fingerprint(u64);
+            impl Hasher for Fingerprint {
+                fn finish(&self) -> u64 { self.0 }
+                fn write(&mut self, bytes: &[u8]) {
+                    for byte in bytes { self.0 = self.0.rotate_left(5) ^ u64::from(*byte); }
+                }
+            }
+            #[no_mangle]
+            pub extern "C" fn call() -> u64 {
+                let mut state = Fingerprint(ink::INPUT.len() as u64);
+                core::any::TypeId::of::<ink::Marker>().hash(&mut state);
+                state.finish()
+            }
+            #[panic_handler]
+            fn panic(_: &core::panic::PanicInfo) -> ! { loop {} }
+        "#,
+            )?;
+            let manifest = ManifestPath::new(root.join("contract/Cargo.toml"))?;
+            let metadata = CrateMetadata::collect(&manifest, Target::Wasm)?;
+            super::exec_cargo_for_onchain_target(
+                &metadata,
+                "build",
+                &Default::default(),
+                &BuildMode::Release,
+                &crate::Network::Offline,
+                &Verbosity::Quiet,
+                &Default::default(),
+                &Target::Wasm,
+            )?;
+            assert_eq!(
+                metadata.original_code.file_name().unwrap(),
+                format!("{library}.wasm").as_str()
+            );
+            binaries.push(fs::read(metadata.original_code)?);
+        }
+        assert_eq!(
+            binaries[0], binaries[1],
+            "checkout paths must not change crate identity"
+        );
+    }
+    Ok(())
+}
+
 fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),

@@ -26,7 +26,6 @@ use cargo_metadata::{
     Metadata as CargoMetadata,
     MetadataCommand,
     Package,
-    TargetKind,
 };
 use semver::Version;
 use serde_json::{
@@ -75,23 +74,28 @@ impl CrateMetadata {
         // Normalize the final contract artifact name.
         let contract_artifact_name = root_package.name.replace('-', "_");
 
-        if let Some(lib_name) = &root_package
+        let lib_name = root_package
             .targets
             .iter()
-            .find(|target| target.kind.contains(&TargetKind::Lib))
-        {
-            if lib_name.name != root_package.name {
-                // warn user if they still specify a lib name different from the
-                // package name
-                use colored::Colorize;
-                eprintln!(
-                    "{} the `name` field in the `[lib]` section of the `Cargo.toml`, \
+            .find(|target| {
+                target.is_lib()
+                    || target.is_rlib()
+                    || target.is_cdylib()
+                    || target.is_dylib()
+                    || target.is_staticlib()
+            })
+            .ok_or_else(|| anyhow::anyhow!("No library target found"))?;
+        if lib_name.name != contract_artifact_name {
+            // warn user if they still specify a lib name different from the
+            // package name
+            use colored::Colorize;
+            eprintln!(
+                "{} the `name` field in the `[lib]` section of the `Cargo.toml`, \
                     is no longer used for the name of generated contract artifacts. \
                     The package name is used instead. Remove the `[lib] name` to \
                     stop this warning.",
-                    "warning:".yellow().bold(),
-                );
-            }
+                "warning:".yellow().bold(),
+            );
         }
 
         let absolute_manifest_path = manifest_path.absolute_directory()?;
@@ -106,7 +110,7 @@ impl CrateMetadata {
         let mut original_code = target_directory.clone();
         original_code.push(target.llvm_target());
         original_code.push("release");
-        original_code.push(root_package.name.clone());
+        original_code.push(&lib_name.name);
         original_code.set_extension(target.source_extension());
 
         // {target_dir}/{contract_artifact_name}.code
