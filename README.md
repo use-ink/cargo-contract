@@ -38,19 +38,16 @@ More relevant links:
 In addition to Rust, installation requires a C++ compiler that supports C++17.
 Modern releases of gcc and clang, as well as Visual Studio 2019+ should work.
 
--   Step 1: `rustup component add rust-src`.
+-   Step 1: `rustup toolchain install stable --profile minimal --component rust-src,clippy --target wasm32-unknown-unknown`.
 
--   Step 2: `cargo install --force --locked cargo-contract`.
+-   Step 2: `cargo +stable install --force --locked --git https://github.com/use-ink/cargo-contract --branch v5.x.x`.
 
 -   Step 3: Install dependencies for linting.
 
-    -   (MacOS) `brew install openssl`
-    -   ```
-        export TOOLCHAIN_VERSION=nightly-2024-09-05
-        rustup install $TOOLCHAIN_VERSION
-        rustup component add rust-src --toolchain $TOOLCHAIN_VERSION
-        rustup run $TOOLCHAIN_VERSION cargo install cargo-dylint dylint-link
-        ```
+    ```sh
+    rustup toolchain install nightly-2026-08-20 --profile minimal --component rust-src,rustc-dev,llvm-tools-preview
+    cargo +stable install cargo-dylint dylint-link --version 6.3.2 --locked
+    ```
 
 -   Step 4: (**Optional**) Install [Docker Engine](https://docs.docker.com/engine/install)
     to be able to produce verifiable builds.

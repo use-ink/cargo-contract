@@ -240,7 +240,8 @@ fn extended_metadata(
 ) -> Result<ExtendedMetadataResult> {
     let contract_package = &crate_metadata.root_package;
     let ink_version = &crate_metadata.ink_version;
-    let rust_version = Version::parse(&rustc_version::version()?.to_string())?;
+    let rust_version =
+        crate::util::compiler_version(crate_metadata.manifest_path.directory())?.semver;
     let contract_name = contract_package.name.clone();
     let contract_version = Version::parse(&contract_package.version.to_string())?;
     let contract_authors = contract_package.authors.clone();

@@ -93,9 +93,10 @@ build_tests!(
 fn build_scenario_errors_fail_the_test() -> Result<()> {
     let temporary = tempfile::tempdir()?;
     let context = BuildTestContext::new(temporary.path(), "failing_scenario")?;
-    context
+    let error = context
         .run_test("failing_scenario", |_| anyhow::bail!("expected failure"))
         .expect_err("a failed build scenario must fail the test");
+    assert_eq!(error.root_cause().to_string(), "expected failure");
     Ok(())
 }
 

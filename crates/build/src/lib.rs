@@ -285,7 +285,7 @@ fn exec_cargo_for_onchain_target(
     unstable_flags: &UnstableFlags,
     target: &Target,
 ) -> Result<()> {
-    let compiler = rustc_version::version_meta()?;
+    let compiler = util::compiler_version(crate_metadata.manifest_path.directory())?;
     let immediate_abort = (compiler.semver.major, compiler.semver.minor) >= (1, 92);
     let cargo_build = |manifest_path: &ManifestPath| {
         let target_dir = format!(

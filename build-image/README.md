@@ -6,7 +6,10 @@ Used for reproducible builds in `cargo contract build --verifiable`
 
 **Rust tools & toolchains:**
 
-We use stable releases from crates.io
+The image uses current stable Rust and the `v5.x.x` cargo-contract branch.
+Use `CARGO_CONTRACT_REV` or `CARGO_CONTRACT_TAG` to select a specific source.
+To use a published release, set `CARGO_CONTRACT_GIT=` and
+`CARGO_CONTRACT_VERSION`, together with its matching `RUST_LINTER_VERSION`.
 
 - `cargo-contract`
 - `wasm32-unknown-unknown`: The toolchain to compile Rust codebases for Wasm.
@@ -15,14 +18,14 @@ We use stable releases from crates.io
 
 ## Usage
 
-The default entry point is `ENTRYPOINT [ "cargo", "contract", "build", "--release" ]`
+The default entry point is `ENTRYPOINT [ "cargo", "contract" ]`
 and work directory is set to `/contract`. You need to mount the folder with the contract to the container.
 
 ```bash
 docker run -d \
     --name ink-container \
     --mount type=bind,source="$(pwd)",target="/contract" \
-    useink/contracts-verifiable
+    useink/contracts-verifiable build --release
 ```
 
 For multi-contract projects, like in the example below:
@@ -52,7 +55,7 @@ _Settings_ -> _Features in development_ tab in Docker Desktop App.
 Build docker image:
 
 ```bash
-docker buildx build -t useink/contracts-verifiable:0.0.1-local --build-arg CARGO_CONTRACT_VERSION=4.1.0 .
+docker buildx build -t useink/contracts-verifiable:0.0.1-local .
 ```
 
 Run docker container:
