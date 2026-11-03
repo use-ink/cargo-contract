@@ -47,7 +47,7 @@ impl Profile {
     ///     overwritten.
     ///   - If a profile setting is not defined, the value from this profile instance will
     ///     be added
-    pub(super) fn merge(&self, profile: &mut value::Table) {
+    pub(crate) fn merge(&self, profile: &mut value::Table) {
         fn set_value_if_vacant<T>(
             key: &'static str,
             value: Option<T>,

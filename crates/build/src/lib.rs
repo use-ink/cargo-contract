@@ -269,16 +269,9 @@ impl BuildResult {
 /// which reduces the size of the Wasm binary by not including panic strings and
 /// formatting code.
 ///
-/// # `Cargo.toml` optimizations
-///
-/// The original `Cargo.toml` will be amended to remove the `rlib` crate type in order to
-/// minimize the final Wasm binary size.
-///
-/// Preferred default `[profile.release]` settings will be added if they are missing,
-/// existing user-defined settings will be preserved.
-///
-/// The `[workspace]` will be added if it is missing to ignore `workspace` from parent
-/// `Cargo.toml`.
+/// Compile the library as a binary in its original workspace. Moving its manifest
+/// outside the workspace makes Cargo hash absolute paths of local dependencies.
+/// Supply contract release defaults without overriding user profile settings.
 ///
 /// To disable this and use the original `Cargo.toml` as is then pass the `-Z
 /// original_manifest` flag.
@@ -301,6 +294,12 @@ fn exec_cargo_for_onchain_target(
         let mut args = vec![target_dir, "--release".to_owned()];
         args.extend(onchain_cargo_options(target));
         network.append_to_args(&mut args);
+        let command = if unstable_flags.original_manifest {
+            command
+        } else {
+            args.extend(["--lib".to_owned(), "--crate-type=bin".to_owned()]);
+            "rustc"
+        };
 
         let mut features = features.clone();
         if build_mode == &BuildMode::Debug {
@@ -310,6 +309,9 @@ fn exec_cargo_for_onchain_target(
         }
         features.append_to_args(&mut args);
         let mut env = Vec::new();
+        if !unstable_flags.original_manifest {
+            env.extend(contract_profile_defaults(crate_metadata)?);
+        }
         if rustc_version::version_meta()?.channel == rustc_version::Channel::Stable {
             // Allow nightly features on a stable toolchain
             env.push(("RUSTC_BOOTSTRAP", Some("1".to_string())))
@@ -364,21 +366,57 @@ fn exec_cargo_for_onchain_target(
             "with 'original-manifest' enabled, the contract binary may not be of optimal size."
                 .bold()
         );
-        cargo_build(&crate_metadata.manifest_path)?;
-    } else {
-        Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
-            .with_root_package_manifest(|manifest| {
-                manifest
-                    .with_replaced_lib_to_bin()?
-                    .with_profile_release_defaults(Profile::default_contract_release())?
-                    .with_merged_workspace_dependencies(crate_metadata)?
-                    .with_empty_workspace();
-                Ok(())
-            })?
-            .using_temp(cargo_build)?;
     }
+    cargo_build(&crate_metadata.manifest_path)?;
 
     Ok(())
+}
+
+fn contract_profile_defaults(
+    crate_metadata: &CrateMetadata,
+) -> Result<Vec<(&'static str, Option<String>)>> {
+    let mut manifest = Manifest::new(ManifestPath::new(
+        crate_metadata.cargo_meta.workspace_root.join("Cargo.toml"),
+    )?)?;
+    let profile = manifest.profile_release_table_mut()?;
+    // Let Cargo resolve configuration includes and precedence. This output may
+    // contain unrelated credentials, so only inspect profile keys and never log it.
+    let output = util::cargo_cmd(
+        "config",
+        ["get", "--format=json-value", "-Zunstable-options"],
+        crate_metadata.manifest_path.directory(),
+        Verbosity::Quiet,
+        vec![("RUSTC_BOOTSTRAP", Some("1".into()))],
+    )
+    .stdout_capture()
+    .stderr_capture()
+    .run()?;
+    let config: serde_json::Value = serde_json::from_slice(&output.stdout)?;
+    let mut defaults = toml::value::Table::new();
+    Profile::default_contract_release().merge(&mut defaults);
+    let mut env = Vec::new();
+    for (key, variable) in [
+        ("opt-level", "CARGO_PROFILE_RELEASE_OPT_LEVEL"),
+        ("lto", "CARGO_PROFILE_RELEASE_LTO"),
+        ("codegen-units", "CARGO_PROFILE_RELEASE_CODEGEN_UNITS"),
+        ("panic", "CARGO_PROFILE_RELEASE_PANIC"),
+    ] {
+        if !profile.contains_key(key)
+            && config["profile"]["release"].get(key).is_none()
+            && std::env::var_os(variable).is_none()
+        {
+            let value = &defaults[key];
+            env.push((
+                variable,
+                Some(
+                    value
+                        .as_str()
+                        .map_or_else(|| value.to_string(), str::to_owned),
+                ),
+            ));
+        }
+    }
+    Ok(env)
 }
 
 /// Check if the `INK_STATIC_BUFFER_SIZE` is set.
