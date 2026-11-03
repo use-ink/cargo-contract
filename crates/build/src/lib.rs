@@ -114,11 +114,11 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub(crate) mod linting {
     /// Toolchain used to build ink_linting:
     /// https://github.com/use-ink/ink/blob/v5.x/linting/rust-toolchain.toml
-    pub const TOOLCHAIN_VERSION: &str = "nightly-2024-09-05";
+    pub const TOOLCHAIN_VERSION: &str = "nightly-2026-08-20";
     /// Git repository with ink_linting libraries
     pub const GIT_URL: &str = "https://github.com/use-ink/ink/";
     /// Git revision number of the linting crate
-    pub const GIT_REV: &str = "40d6f5d388595397a97ba0a337ee8ab6ffe2cf7a";
+    pub const GIT_REV: &str = "7dfc905a37f8c08618ee6c86773b4a25a17e5faa";
 }
 
 /// Arguments to use when executing `build` or `check` commands.
@@ -265,9 +265,8 @@ impl BuildResult {
 /// defaults to the current directory.
 ///
 /// Uses the unstable cargo feature [`build-std`](https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#build-std)
-/// to build the standard library with [`panic_immediate_abort`](https://github.com/johnthagen/min-sized-rust#remove-panic-string-formatting-with-panic_immediate_abort)
-/// which reduces the size of the Wasm binary by not including panic strings and
-/// formatting code.
+/// to build the standard library with immediately aborting panics, reducing Wasm
+/// size by excluding panic strings and formatting code.
 ///
 /// Compile the library as a binary in its original workspace. Moving its manifest
 /// outside the workspace makes Cargo hash absolute paths of local dependencies.
@@ -286,6 +285,8 @@ fn exec_cargo_for_onchain_target(
     unstable_flags: &UnstableFlags,
     target: &Target,
 ) -> Result<()> {
+    let compiler = rustc_version::version_meta()?;
+    let immediate_abort = (compiler.semver.major, compiler.semver.minor) >= (1, 92);
     let cargo_build = |manifest_path: &ManifestPath| {
         let target_dir = format!(
             "--target-dir={}",
@@ -304,7 +305,7 @@ fn exec_cargo_for_onchain_target(
         let mut features = features.clone();
         if build_mode == &BuildMode::Debug {
             features.push("ink/ink-debug");
-        } else {
+        } else if !immediate_abort {
             args.push("-Zbuild-std-features=panic_immediate_abort".to_owned());
         }
         features.append_to_args(&mut args);
@@ -312,7 +313,7 @@ fn exec_cargo_for_onchain_target(
         if !unstable_flags.original_manifest {
             env.extend(contract_profile_defaults(crate_metadata)?);
         }
-        if rustc_version::version_meta()?.channel == rustc_version::Channel::Stable {
+        if compiler.channel == rustc_version::Channel::Stable {
             // Allow nightly features on a stable toolchain
             env.push(("RUSTC_BOOTSTRAP", Some("1".to_string())))
         }
@@ -325,7 +326,12 @@ fn exec_cargo_for_onchain_target(
         // to live with duplicated warnings. For the metadata build we can disable
         // warnings.
         let rustflags = {
-            let common_flags = "-Clinker-plugin-lto";
+            // Rust 1.92 replaced the build-std feature with a panic strategy.
+            let common_flags = if immediate_abort && build_mode != &BuildMode::Debug {
+                "-Clinker-plugin-lto\x1f-Zunstable-options\x1f-Cpanic=immediate-abort"
+            } else {
+                "-Clinker-plugin-lto"
+            };
             if let Some(target_flags) = target.rustflags() {
                 format!("{common_flags}\x1f{target_flags}")
             } else {

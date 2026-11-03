@@ -221,7 +221,7 @@ where
         {
             let inner = anyhow!(
                 "Tried to execute a call on the immutable contract message '{}'. Please do a dry-run instead.",
-                &self.message
+                self.message
             );
             return Err(inner.into())
         }

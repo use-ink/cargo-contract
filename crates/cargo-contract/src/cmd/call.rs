@@ -174,7 +174,7 @@ impl CallCommand {
                         )
                         .context(format!(
                             "Failed to decode return value {:?}",
-                            &ret_val
+                            ret_val
                         ))?;
                     let dry_run_result = CallDryRunResult {
                         reverted: ret_val.did_revert(),

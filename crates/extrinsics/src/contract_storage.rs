@@ -149,7 +149,7 @@ where
 
         let storage = storage_keys
             .into_iter()
-            .zip(storage_values.into_iter())
+            .zip(storage_values)
             .filter_map(|(key, value)| value.map(|v| (key, v)))
             .collect();
 

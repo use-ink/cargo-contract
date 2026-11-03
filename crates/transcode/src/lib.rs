@@ -513,7 +513,13 @@ mod tests {
 
     use crate::scon::Hex;
 
-    #[allow(clippy::extra_unused_lifetimes, unexpected_cfgs, non_local_definitions)]
+    // ink! 5.1.1 generates a Clone call that also supports non-Copy account IDs.
+    #[allow(
+        clippy::clone_on_copy,
+        clippy::extra_unused_lifetimes,
+        unexpected_cfgs,
+        non_local_definitions
+    )]
     #[ink::contract]
     pub mod transcode {
         #[ink(storage)]

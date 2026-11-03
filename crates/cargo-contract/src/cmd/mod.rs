@@ -216,11 +216,11 @@ where
 
     // print debug messages aligned, only first line has key
     if let Some(debug_message) = debug_message_lines.next() {
-        name_value_println!("Debug Message", format!("{debug_message}"), WIDTH);
+        name_value_println!("Debug Message", debug_message, WIDTH);
     }
 
     for debug_message in debug_message_lines {
-        name_value_println!("", format!("{debug_message}"), WIDTH);
+        name_value_println!("", debug_message, WIDTH);
     }
     Ok(())
 }
@@ -232,11 +232,11 @@ pub fn display_contract_exec_result_debug<R, const WIDTH: usize, Balance>(
         .context("Error decoding UTF8 debug message bytes")?
         .lines();
     if let Some(debug_message) = debug_message_lines.next() {
-        name_value_println!("Debug Message", format!("{debug_message}"), WIDTH);
+        name_value_println!("Debug Message", debug_message, WIDTH);
     }
 
     for debug_message in debug_message_lines {
-        name_value_println!("", format!("{debug_message}"), WIDTH);
+        name_value_println!("", debug_message, WIDTH);
     }
     Ok(())
 }
@@ -319,11 +319,7 @@ pub fn basic_display_format_extended_contract_info<Hash, Balance>(
         format!("{:?}", info.storage_total_deposit),
         MAX_KEY_COL_WIDTH
     );
-    name_value_println!(
-        "Source Language",
-        format!("{}", info.source_language),
-        MAX_KEY_COL_WIDTH
-    );
+    name_value_println!("Source Language", info.source_language, MAX_KEY_COL_WIDTH);
 }
 
 /// Display all contracts addresses in a formatted way
