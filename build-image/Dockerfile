@@ -3,11 +3,11 @@ FROM docker.io/bitnami/minideb:bullseye-amd64 as slimmed-rust
 # The rust version to use
 ARG RUST_VERSION=stable
 # The cargo contract version to use
-ARG CARGO_CONTRACT_VERSION=4.1.0
+ARG CARGO_CONTRACT_VERSION=5.0.3
 # Url to the cargo-contract repository to install from
-ARG CARGO_CONTRACT_GIT
+ARG CARGO_CONTRACT_GIT=https://github.com/use-ink/cargo-contract
 # Branch to use in git repository
-ARG CARGO_CONTRACT_BRANCH
+ARG CARGO_CONTRACT_BRANCH=v5.x.x
 # Commit to use in git repository
 ARG CARGO_CONTRACT_REV
 # Tag to use in git repository
@@ -20,7 +20,7 @@ ARG WGET_VERSION=1.21-1+deb11u1
 ARG G_VERSION=4:10.2.1-1
 ARG MUSL_V=1.2.2-1
 # The rust version used by linter
-ARG RUST_LINTER_VERSION=nightly-2024-09-05
+ARG RUST_LINTER_VERSION=nightly-2026-08-20
 
 # metadata
 LABEL ink.use.image.vendor="Use Ink" \
@@ -56,7 +56,7 @@ RUN set -eux \
     && rm rustup-init \
     # Install nightly toolchain required by `cargo contract build --verifiable --lint` command
     && rustup install ${RUST_LINTER_VERSION} --profile minimal \
-    && rustup component add rust-src --toolchain ${RUST_LINTER_VERSION} \
+    && rustup component add rust-src rustc-dev llvm-tools-preview --toolchain ${RUST_LINTER_VERSION} \
     && chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
     && rustup --version \
     && cargo --version \
@@ -85,27 +85,24 @@ ENV RUSTFLAGS="-C target-feature=-crt-static" \
 RUN apt-get -y update && apt-get -y install gcc=${GCC_VERSION} g++=${G_VERSION} musl-dev=${MUSL_V} libssl-dev pkg-config \
     # Install cargo contract from git if the arg is set
     && if [ -n "$CARGO_CONTRACT_GIT" ]; then \
-    COMMAND="cargo install --git ${CARGO_CONTRACT_GIT}" ; \
+    COMMAND="cargo install --locked --git ${CARGO_CONTRACT_GIT}" ; \
     else \
     COMMAND="cargo install cargo-contract --locked --version ${CARGO_CONTRACT_VERSION}" ;\
     fi \
-    && if [ -n "$CARGO_CONTRACT_BRANCH" ] && [ -n "$CARGO_CONTRACT_GIT" ]; then \
-    COMMAND="${COMMAND} --branch ${CARGO_CONTRACT_BRANCH}" ; \
-    fi \
-    && if [ -n "$CARGO_CONTRACT_REV" ] && [ -n "$CARGO_CONTRACT_GIT" ]; then \
-    COMMAND="${COMMAND} --rev ${CARGO_CONTRACT_REV}" ; \
-    fi \
     && if [ -n "$CARGO_CONTRACT_TAG" ] && [ -n "$CARGO_CONTRACT_GIT" ]; then \
-    COMMAND="cargo install --git ${CARGO_CONTRACT_GIT} --tag ${CARGO_CONTRACT_TAG}" ; \
+    COMMAND="${COMMAND} --tag ${CARGO_CONTRACT_TAG}" ; \
+    elif [ -n "$CARGO_CONTRACT_REV" ] && [ -n "$CARGO_CONTRACT_GIT" ]; then \
+    COMMAND="${COMMAND} --rev ${CARGO_CONTRACT_REV}" ; \
+    elif [ -n "$CARGO_CONTRACT_BRANCH" ] && [ -n "$CARGO_CONTRACT_GIT" ]; then \
+    COMMAND="${COMMAND} --branch ${CARGO_CONTRACT_BRANCH}" ; \
     fi \
     && echo "Executing ${COMMAND}" \
     && eval "${COMMAND}" \
     # Install cargo-dylint, dylint-link required by `cargo contract build --verifiable --lint` command
-    && cargo +${RUST_LINTER_VERSION} install cargo-dylint dylint-link \
-    && cargo install cargo-dylint dylint-link \
+    && cargo install cargo-dylint dylint-link --version 6.3.2 --locked \
     # Check if build with linting works
     && cargo contract new test \
-    # Generate /usr/local/dylint_drivers/nightly-2024-09-05-x86_64-unknown-linux-gnu/dylint-driver bin
+    # Generate /usr/local/dylint_drivers/nightly-2026-08-20-x86_64-unknown-linux-gnu/dylint-driver bin
     && mkdir -p $DYLINT_DRIVER_PATH \
     && cd test && cargo contract build --lint --verbose --release && cd .. \
     && rm -rf test \

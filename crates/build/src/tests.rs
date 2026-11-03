@@ -27,7 +27,10 @@ use crate::{
     Target,
     Verbosity,
 };
-use anyhow::Result;
+use anyhow::{
+    Context,
+    Result,
+};
 use contract_metadata::*;
 use serde_json::{
     Map,
@@ -80,11 +83,22 @@ build_tests!(
     build_with_json_output_works,
     building_contract_with_source_file_in_subfolder_must_work,
     building_contract_with_build_rs_must_work,
-    missing_linting_toolchain_installation_must_be_detected,
+    missing_cargo_dylint_installation_must_be_detected,
     generates_metadata,
     unchanged_contract_skips_optimization_and_metadata_steps,
     unchanged_contract_no_metadata_artifacts_generates_metadata
 );
+
+#[test]
+fn build_scenario_errors_fail_the_test() -> Result<()> {
+    let temporary = tempfile::tempdir()?;
+    let context = BuildTestContext::new(temporary.path(), "failing_scenario")?;
+    let error = context
+        .run_test("failing_scenario", |_| anyhow::bail!("expected failure"))
+        .expect_err("a failed build scenario must fail the test");
+    assert_eq!(error.root_cause().to_string(), "expected failure");
+    Ok(())
+}
 
 #[test]
 fn local_dependencies_keep_their_identity_and_build_inputs() -> Result<()> {
@@ -522,7 +536,7 @@ fn build_with_json_output_works(manifest_path: &ManifestPath) -> Result<()> {
 }
 
 #[cfg(unix)]
-fn missing_linting_toolchain_installation_must_be_detected(
+fn missing_cargo_dylint_installation_must_be_detected(
     manifest_path: &ManifestPath,
 ) -> Result<()> {
     use super::util::tests::create_executable;
@@ -530,19 +544,14 @@ fn missing_linting_toolchain_installation_must_be_detected(
     // given
     let manifest_dir = manifest_path.directory().unwrap();
 
-    // mock non-existing `rustup` binary
-    let _tmp0 = create_executable(&manifest_dir.join("rustup"), "#!/bin/sh\nexit 1");
+    // Mock a missing cargo-dylint subcommand.
+    let _tmp0 = create_executable(&manifest_dir.join("cargo"), "#!/bin/sh\nexit 1");
 
     // when
-    let args = ExecuteArgs {
-        manifest_path: manifest_path.clone(),
-        extra_lints: true,
-        ..Default::default()
-    };
-    let res = super::execute(args).map(|_| ()).unwrap_err();
+    let error = super::check_dylint_requirements().unwrap_err();
 
     // then
-    assert!(format!("{res:?}").contains("` was not found!"));
+    assert!(error.to_string().contains("cargo-dylint was not found!"));
 
     Ok(())
 }
@@ -834,8 +843,7 @@ impl BuildTestContext {
         })
     }
 
-    /// Run the supplied test. Test failure will print the error to `stdout`, and this
-    /// will still return `Ok(())` in order that subsequent tests will still be run.
+    /// Run the supplied test and return any failure after restoring its files.
     ///
     /// The test may modify the contracts project files (e.g. Cargo.toml, lib.rs), so
     /// after completion those files are reverted to their original state for the next
@@ -851,12 +859,7 @@ impl BuildTestContext {
         println!("Running {name}");
         let manifest_path = ManifestPath::new(self.working_dir.join("Cargo.toml"))?;
         let crate_metadata = CrateMetadata::collect(&manifest_path, Target::Wasm)?;
-        match test(&manifest_path) {
-            Ok(()) => (),
-            Err(err) => {
-                println!("{name} FAILED: {err:?}");
-            }
-        }
+        let result = test(&manifest_path).with_context(|| format!("{name} failed"));
         // revert to the original template files, but keep the `target` dir from the
         // previous run.
         self.remove_all_except_target_dir()?;
@@ -865,7 +868,7 @@ impl BuildTestContext {
         if crate_metadata.original_code.exists() {
             fs::remove_file(&crate_metadata.original_code)?;
         }
-        Ok(())
+        result
     }
 
     /// Deletes all files and folders in project dir (except the `target` directory)

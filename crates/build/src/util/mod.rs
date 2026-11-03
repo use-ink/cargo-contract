@@ -24,14 +24,33 @@ use std::{
     ffi::OsString,
     path::Path,
 };
-use term_size as _;
 
 // Returns the current Rust toolchain formatted by `<channel>-<target-triple>`.
 pub fn rust_toolchain() -> Result<String> {
-    let meta = rustc_version::version_meta()?;
+    let meta = compiler_version(None)?;
     let toolchain = format!("{:?}-{}", meta.channel, meta.host,).to_lowercase();
 
     Ok(toolchain)
+}
+
+/// Resolve rustup's directory override exactly where Cargo will compile the contract.
+pub(crate) fn compiler_version(
+    working_dir: Option<&Path>,
+) -> Result<rustc_version::VersionMeta> {
+    let rustc = std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into());
+    let mut command = if let Some(wrapper) =
+        std::env::var_os("RUSTC_WRAPPER").filter(|w| !w.is_empty())
+    {
+        let mut command = std::process::Command::new(wrapper);
+        command.arg(rustc);
+        command
+    } else {
+        std::process::Command::new(rustc)
+    };
+    if let Some(directory) = working_dir {
+        command.current_dir(directory);
+    }
+    Ok(rustc_version::VersionMeta::for_command(command)?)
 }
 
 /// Builds an [`Expression`] for invoking `cargo`.
@@ -100,9 +119,9 @@ pub fn cargo_tty_output(cmd: Expression) -> Expression {
     let term_size = "100";
 
     #[cfg(not(windows))]
-    let term_size = term_size::dimensions_stderr()
+    let term_size = crossterm::terminal::size()
         .map(|(width, _)| width.to_string())
-        .unwrap_or_else(|| "100".to_string());
+        .unwrap_or_else(|_| "100".to_string());
 
     cmd.env("CARGO_TERM_COLOR", "auto")
         .env("CARGO_TERM_PROGRESS_WIDTH", term_size)

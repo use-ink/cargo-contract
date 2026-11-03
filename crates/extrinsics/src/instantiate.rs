@@ -291,7 +291,7 @@ where
                         &self.args.constructor,
                         &mut &ret_val.result.data[..],
                     )
-                    .context(format!("Failed to decode return value {:?}", &ret_val))?;
+                    .context(format!("Failed to decode return value {:?}", ret_val))?;
                 let dry_run_result = InstantiateDryRunResult {
                     result: value,
                     contract: ret_val.account_id.to_string(),

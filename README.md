@@ -38,24 +38,27 @@ More relevant links:
 In addition to Rust, installation requires a C++ compiler that supports C++17.
 Modern releases of gcc and clang, as well as Visual Studio 2019+ should work.
 
--   Step 1: `rustup component add rust-src`.
+Install v5 with current stable Rust:
 
--   Step 2: `cargo install --force --locked cargo-contract`.
+```sh
+rustup toolchain install stable --component rust-src,clippy --target wasm32-unknown-unknown
+cargo +stable install --locked --git https://github.com/use-ink/cargo-contract --branch v5.x.x
+```
 
--   Step 3: Install dependencies for linting.
+Run the `cargo install` command again to update.
 
-    -   (MacOS) `brew install openssl`
-    -   ```
-        export TOOLCHAIN_VERSION=nightly-2024-09-05
-        rustup install $TOOLCHAIN_VERSION
-        rustup component add rust-src --toolchain $TOOLCHAIN_VERSION
-        rustup run $TOOLCHAIN_VERSION cargo install cargo-dylint dylint-link
-        ```
+For ink-specific checks with `cargo contract build --lint`, also install:
 
--   Step 4: (**Optional**) Install [Docker Engine](https://docs.docker.com/engine/install)
-    to be able to produce verifiable builds.
+```sh
+cargo +stable install cargo-dylint dylint-link --version 6.3.2 --locked
+```
 
-You can always update the `cargo-contract` binary to the latest version by running the Step 2.
+On the first lint run, rustup automatically installs the nightly compiler and components
+required by the ink linter. This needs internet access and leaves your default
+Rust toolchain unchanged.
+
+[Docker Engine](https://docs.docker.com/engine/install) is optional and enables
+verifiable builds.
 
 ### Installation using Docker Image
 

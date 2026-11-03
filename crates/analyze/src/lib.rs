@@ -167,7 +167,7 @@ impl<'a> Module<'a> {
     pub fn functions_by_type(
         &self,
         function_type: &FuncType,
-    ) -> Result<Vec<Vec<Operator>>> {
+    ) -> Result<Vec<Vec<Operator<'_>>>> {
         self.function_sections
             .iter()
             .enumerate()

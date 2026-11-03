@@ -1,2 +1,4 @@
 [toolchain]
-channel = "1.86"
+channel = "stable"
+components = ["rust-src", "clippy"]
+targets = ["wasm32-unknown-unknown"]

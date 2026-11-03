@@ -148,8 +148,8 @@ impl SchemaVerificationResult {
         format!(
             "\n{} {} against schema {}",
             "Successfully verified metadata in".bright_green().bold(),
-            format!("`{}`", &self.metadata_source).bold(),
-            format!("`{}`!", &self.schema).bold()
+            format!("`{}`", self.metadata_source).bold(),
+            format!("`{}`!", self.schema).bold()
         )
     }
 

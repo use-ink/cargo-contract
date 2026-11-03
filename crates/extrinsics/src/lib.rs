@@ -140,6 +140,8 @@ impl WasmCode {
 ///
 /// Currently this will report success once the transaction is included in a block. In the
 /// future there could be a flag to wait for finality before reporting success.
+// Preserve the SDK's error type through these RPC helpers.
+#[allow(clippy::result_large_err)]
 async fn submit_extrinsic<C, Call, Signer>(
     client: &OnlineClient<C>,
     rpc: &LegacyRpcMethods<C>,
@@ -200,6 +202,7 @@ where
 }
 
 /// Return the account nonce at the *best* block for an account ID.
+#[allow(clippy::result_large_err)] // Keep the subxt error available to the caller.
 async fn get_account_nonce<C>(
     client: &OnlineClient<C>,
     rpc: &LegacyRpcMethods<C>,
@@ -235,6 +238,7 @@ where
 }
 
 /// Fetch the hash of the *best* block (included but not guaranteed to be finalized).
+#[allow(clippy::result_large_err)] // Keep the subxt error available to the caller.
 async fn get_best_block<C>(
     rpc: &LegacyRpcMethods<C>,
 ) -> core::result::Result<C::Hash, subxt::Error>

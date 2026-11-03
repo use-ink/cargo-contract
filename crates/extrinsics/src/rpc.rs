@@ -58,16 +58,13 @@ impl RawParams {
         let params = match value_params.is_empty() {
             true => None,
             false => {
-                value_params
-                    .iter()
-                    .try_fold(RpcParams::new(), |mut v, e| {
-                        v.push(e)?;
-                        Ok(v)
-                    })
-                    .map_err(|e: subxt::Error| {
+                let mut params = RpcParams::new();
+                for value in &value_params {
+                    params.push(value).map_err(|e| {
                         anyhow::anyhow!("Building method parameters failed: {e}")
-                    })?
-                    .build()
+                    })?;
+                }
+                params.build()
             }
         };
 

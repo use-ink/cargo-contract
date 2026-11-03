@@ -301,7 +301,7 @@ impl VerifyCommand {
             );
             anyhow::bail!(format!(
                 "\nFailed to verify `{}` against the workspace at `{}`: the hashed Wasm blobs are not matching.",
-                format!("{}", &path.display()).bright_white(),
+                format!("{}", path.display()).bright_white(),
                 format!("{}", manifest_path.as_ref().display()).bright_white()
             )
             .bright_red());
@@ -318,7 +318,7 @@ impl VerifyCommand {
             );
             anyhow::bail!(format!(
                 "\nThe reference contract `{}` metadata is corrupt: the source.hash does not match the source.wasm hash.",
-                format!("{}", &path.display()).bright_white()
+                format!("{}", path.display()).bright_white()
             )
             .bright_red());
         }
@@ -353,8 +353,8 @@ impl VerificationResult {
         format!(
             "\n{} {} against reference contract {}",
             "Successfully verified contract".bright_green().bold(),
-            format!("`{}`", &self.contract).bold(),
-            format!("`{}`!", &self.reference_contract).bold()
+            format!("`{}`", self.contract).bold(),
+            format!("`{}`!", self.reference_contract).bold()
         )
     }
 
