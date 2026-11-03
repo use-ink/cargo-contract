@@ -82,9 +82,10 @@ fn unzip(template: &[u8], out_dir: PathBuf, name: Option<&str>) -> Result<()> {
 
     for i in 0..archive.len() {
         let mut file = archive.by_index(i)?;
-        let outpath = out_dir.join(file.name());
+        let file_name = file.name()?.into_owned();
+        let outpath = out_dir.join(&file_name);
 
-        if (*file.name()).ends_with('/') {
+        if file_name.ends_with('/') {
             fs::create_dir_all(&outpath)?;
         } else {
             if let Some(p) = outpath.parent() {
@@ -98,7 +99,7 @@ fn unzip(template: &[u8], out_dir: PathBuf, name: Option<&str>) -> Result<()> {
                 .open(outpath.clone())
                 .map_err(|e| {
                     if e.kind() == std::io::ErrorKind::AlreadyExists {
-                        anyhow::anyhow!("File {} already exists", file.name(),)
+                        anyhow::anyhow!("File {} already exists", file_name)
                     } else {
                         anyhow::anyhow!(e)
                     }
