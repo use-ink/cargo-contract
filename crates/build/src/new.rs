@@ -106,11 +106,13 @@ mod tests {
             let mut expected = Vec::new();
             for entry in fs::read_dir(templates)? {
                 let name = entry?.file_name();
-                expected.push(if name == "_Cargo.toml" {
-                    "Cargo.toml".into()
-                } else {
-                    name
-                });
+                expected.push(
+                    if name == "_Cargo.toml" {
+                        "Cargo.toml".into()
+                    } else {
+                        name
+                    },
+                );
             }
             let mut generated = Vec::new();
             for entry in fs::read_dir(project)? {
