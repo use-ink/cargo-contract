@@ -19,16 +19,8 @@ use heck::ToUpperCamelCase as _;
 use std::{
     env,
     fs,
-    io::{
-        Cursor,
-        Read,
-        Seek,
-        Write,
-    },
-    path::{
-        Path,
-        PathBuf,
-    },
+    io::Write,
+    path::Path,
 };
 
 /// Creates a new contract project from the template.
@@ -61,72 +53,39 @@ where
         fs::create_dir(&out_dir)?;
     }
 
-    let template = include_bytes!(concat!(env!("OUT_DIR"), "/template.zip"));
-
-    unzip(template, out_dir, Some(name))?;
-
-    Ok(())
-}
-
-// Unzips the file at `template` to `out_dir`.
-//
-// In case `name` is set the zip file is treated as if it were a template for a new
-// contract. Replacements in `Cargo.toml` for `name`-placeholders are attempted in
-// that case.
-fn unzip(template: &[u8], out_dir: PathBuf, name: Option<&str>) -> Result<()> {
-    let mut cursor = Cursor::new(Vec::new());
-    cursor.write_all(template)?;
-    cursor.rewind()?;
-
-    let mut archive = zip::ZipArchive::new(cursor)?;
-
-    for i in 0..archive.len() {
-        let mut file = archive.by_index(i)?;
-        let file_name = file.name()?.into_owned();
-        let outpath = out_dir.join(&file_name);
-
-        if file_name.ends_with('/') {
-            fs::create_dir_all(&outpath)?;
-        } else {
-            if let Some(p) = outpath.parent() {
-                if !p.exists() {
-                    fs::create_dir_all(p)?;
+    let templates = [
+        (
+            "rust-toolchain.toml",
+            include_str!("../templates/new/rust-toolchain.toml"),
+        ),
+        ("Cargo.toml", include_str!("../templates/new/_Cargo.toml")),
+        ("lib.rs", include_str!("../templates/new/lib.rs")),
+        (".gitignore", include_str!("../templates/new/.gitignore")),
+    ];
+    let camel_name = name.to_upper_camel_case();
+    for (file_name, template) in templates {
+        let outpath = out_dir.join(file_name);
+        let mut outfile = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&outpath)
+            .map_err(|e| {
+                if e.kind() == std::io::ErrorKind::AlreadyExists {
+                    anyhow::anyhow!("File {} already exists", file_name)
+                } else {
+                    anyhow::anyhow!(e)
                 }
-            }
-            let mut outfile = fs::OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(outpath.clone())
-                .map_err(|e| {
-                    if e.kind() == std::io::ErrorKind::AlreadyExists {
-                        anyhow::anyhow!("File {} already exists", file_name)
-                    } else {
-                        anyhow::anyhow!(e)
-                    }
-                })?;
+            })?;
+        let contents = template
+            .replace("{{name}}", name)
+            .replace("{{camel_name}}", &camel_name);
+        outfile.write_all(contents.as_bytes())?;
 
-            if let Some(name) = name {
-                let mut contents = String::new();
-                file.read_to_string(&mut contents)?;
-                let contents = contents.replace("{{name}}", name);
-                let contents =
-                    contents.replace("{{camel_name}}", &name.to_upper_camel_case());
-                outfile.write_all(contents.as_bytes())?;
-            } else {
-                let mut v = Vec::new();
-                file.read_to_end(&mut v)?;
-                outfile.write_all(v.as_slice())?;
-            }
-        }
-
-        // Get and set permissions
+        // Preserve the permissions previously stored in the template archive.
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
-
-            if let Some(mode) = file.unix_mode() {
-                fs::set_permissions(&outpath, fs::Permissions::from_mode(mode))?;
-            }
+            fs::set_permissions(&outpath, fs::Permissions::from_mode(0o755))?;
         }
     }
 
@@ -137,6 +96,38 @@ fn unzip(template: &[u8], out_dir: PathBuf, name: Option<&str>) -> Result<()> {
 mod tests {
     use super::*;
     use crate::util::tests::with_tmp_dir;
+
+    #[test]
+    fn generated_project_contains_all_template_files() {
+        with_tmp_dir(|path| {
+            new_contract_project("test_contract", Some(path))?;
+            let project = path.join("test_contract");
+            let templates = Path::new(env!("CARGO_MANIFEST_DIR")).join("templates/new");
+            let mut expected = Vec::new();
+            for entry in fs::read_dir(templates)? {
+                let name = entry?.file_name();
+                expected.push(if name == "_Cargo.toml" {
+                    "Cargo.toml".into()
+                } else {
+                    name
+                });
+            }
+            let mut generated = Vec::new();
+            for entry in fs::read_dir(project)? {
+                let entry = entry?;
+                generated.push(entry.file_name());
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    assert_eq!(entry.metadata()?.permissions().mode() & 0o777, 0o755);
+                }
+            }
+            expected.sort();
+            generated.sort();
+            assert_eq!(generated, expected);
+            Ok(())
+        })
+    }
 
     #[test]
     fn rejects_hyphenated_name() {
@@ -181,7 +172,7 @@ mod tests {
     fn contract_cargo_project_already_exists() {
         with_tmp_dir(|path| {
             let name = "test_contract_cargo_project_already_exists";
-            let _ = new_contract_project(name, Some(path));
+            new_contract_project(name, Some(path))?;
             let result = new_contract_project(name, Some(path));
 
             assert!(result.is_err(), "Should fail");
@@ -196,17 +187,23 @@ mod tests {
     #[test]
     fn dont_overwrite_existing_files_not_in_cargo_project() {
         with_tmp_dir(|path| {
-            let name = "dont_overwrite_existing_files";
-            let dir = path.join(name);
-            fs::create_dir_all(&dir).unwrap();
-            fs::File::create(dir.join(".gitignore")).unwrap();
-            let result = new_contract_project(name, Some(path));
+            for file_name in [".gitignore", "lib.rs", "rust-toolchain.toml"] {
+                let name = "dont_overwrite_existing_files";
+                let dir = path.join(name);
+                fs::create_dir(&dir)?;
+                fs::write(dir.join(file_name), "existing contents")?;
+                let error = new_contract_project(name, Some(path)).unwrap_err();
 
-            assert!(result.is_err(), "Should fail");
-            assert_eq!(
-                result.err().unwrap().to_string(),
-                "File .gitignore already exists"
-            );
+                assert_eq!(
+                    error.to_string(),
+                    format!("File {file_name} already exists")
+                );
+                assert_eq!(
+                    fs::read_to_string(dir.join(file_name))?,
+                    "existing contents"
+                );
+                fs::remove_dir_all(dir)?;
+            }
             Ok(())
         })
     }
