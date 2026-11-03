@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]
 - Refresh v5 dependencies and ink lints, test current stable Rust and support its immediate-abort panic strategy.
+- Let rustup install the ink linter's compiler automatically on the first lint run.
 - Make contract-build scenarios fail the test suite when a build fails.
 - Keep local dependency identities reproducible by compiling contracts in their original workspace. Release profiles now follow Cargo's workspace-root, config and environment settings.
 - Repair v5 CI runners, pinned tools, Clippy checks and template build coverage.

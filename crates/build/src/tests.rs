@@ -83,7 +83,7 @@ build_tests!(
     build_with_json_output_works,
     building_contract_with_source_file_in_subfolder_must_work,
     building_contract_with_build_rs_must_work,
-    missing_linting_toolchain_installation_must_be_detected,
+    missing_cargo_dylint_installation_must_be_detected,
     generates_metadata,
     unchanged_contract_skips_optimization_and_metadata_steps,
     unchanged_contract_no_metadata_artifacts_generates_metadata
@@ -536,7 +536,7 @@ fn build_with_json_output_works(manifest_path: &ManifestPath) -> Result<()> {
 }
 
 #[cfg(unix)]
-fn missing_linting_toolchain_installation_must_be_detected(
+fn missing_cargo_dylint_installation_must_be_detected(
     manifest_path: &ManifestPath,
 ) -> Result<()> {
     use super::util::tests::create_executable;
@@ -544,19 +544,14 @@ fn missing_linting_toolchain_installation_must_be_detected(
     // given
     let manifest_dir = manifest_path.directory().unwrap();
 
-    // mock non-existing `rustup` binary
-    let _tmp0 = create_executable(&manifest_dir.join("rustup"), "#!/bin/sh\nexit 1");
+    // Mock a missing cargo-dylint subcommand.
+    let _tmp0 = create_executable(&manifest_dir.join("cargo"), "#!/bin/sh\nexit 1");
 
     // when
-    let args = ExecuteArgs {
-        manifest_path: manifest_path.clone(),
-        extra_lints: true,
-        ..Default::default()
-    };
-    let res = super::execute(args).map(|_| ()).unwrap_err();
+    let error = super::check_dylint_requirements().unwrap_err();
 
     // then
-    assert!(format!("{res:?}").contains("` was not found!"));
+    assert!(error.to_string().contains("cargo-dylint was not found!"));
 
     Ok(())
 }

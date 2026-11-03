@@ -218,10 +218,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - name: Install toolchains
-        run: |
-          rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal --component rust-src,clippy --target wasm32-unknown-unknown
-          rustup toolchain install nightly-2026-08-20 --profile minimal --component rust-src,rustc-dev,llvm-tools-preview
+      - name: Install stable toolchain
+        run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal --component rust-src,clippy --target wasm32-unknown-unknown
 
       - name: Cache
         uses: Swatinem/rust-cache@e9d7b9f1e587218970671bac74e5511ed9506e6a # v2

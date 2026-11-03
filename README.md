@@ -50,9 +50,12 @@ Run the `cargo install` command again to update.
 For ink-specific checks with `cargo contract build --lint`, also install:
 
 ```sh
-rustup toolchain install nightly-2026-08-20 --component rust-src,rustc-dev,llvm-tools-preview
 cargo +stable install cargo-dylint dylint-link --version 6.3.2 --locked
 ```
+
+On the first lint run, rustup automatically installs the nightly compiler and components
+required by the ink linter. This needs internet access and leaves your default
+Rust toolchain unchanged.
 
 [Docker Engine](https://docs.docker.com/engine/install) is optional and enables
 verifiable builds.

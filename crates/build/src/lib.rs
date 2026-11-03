@@ -93,10 +93,7 @@ use colored::Colorize;
 use semver::Version;
 use std::{
     fs,
-    path::{
-        Path,
-        PathBuf,
-    },
+    path::PathBuf,
     process::Command,
     str,
 };
@@ -112,13 +109,10 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 ///
 /// Ensure it is kept up-to-date when updating `cargo-contract`.
 pub(crate) mod linting {
-    /// Toolchain used to build ink_linting:
-    /// https://github.com/use-ink/ink/blob/v5.x/linting/rust-toolchain.toml
-    pub const TOOLCHAIN_VERSION: &str = "nightly-2026-08-20";
     /// Git repository with ink_linting libraries
     pub const GIT_URL: &str = "https://github.com/use-ink/ink/";
     /// Git revision number of the linting crate
-    pub const GIT_REV: &str = "7dfc905a37f8c08618ee6c86773b4a25a17e5faa";
+    pub const GIT_REV: &str = "2fb9a619f139b60980ccc66ba669312b1a1859ea";
 }
 
 /// Arguments to use when executing `build` or `check` commands.
@@ -510,8 +504,7 @@ fn execute_cargo(cargo: duct::Expression) -> Result<()> {
     }
 }
 
-/// Run linting that involves two steps: `clippy` and `dylint`. Both are mandatory as
-/// they're part of the compilation process and implement security-critical features.
+/// Run Clippy, plus ink-specific Dylint checks when requested or required by the target.
 fn lint(
     extra_lints: bool,
     crate_metadata: &CrateMetadata,
@@ -526,9 +519,6 @@ fn lint(
     );
     exec_cargo_clippy(crate_metadata, *verbosity)?;
 
-    // TODO (jubnzv): Dylint needs a custom toolchain installed by the user. Currently,
-    // it's required only for RiscV target. We're working on the toolchain integration
-    // and will make this step mandatory for all targets in future releases.
     if extra_lints || matches!(target, Target::RiscV) {
         verbose_eprintln!(
             verbosity,
@@ -586,7 +576,7 @@ fn exec_cargo_dylint(
     target: &Target,
     verbosity: Verbosity,
 ) -> Result<()> {
-    check_dylint_requirements(crate_metadata.manifest_path.directory())?;
+    check_dylint_requirements()?;
 
     // `dylint` is verbose by default, it doesn't have a `--verbose` argument,
     let verbosity = match verbosity {
@@ -643,14 +633,9 @@ fn exec_cargo_dylint(
     Ok(())
 }
 
-/// Checks if all requirements for `dylint` are installed.
-///
-/// We require both `cargo-dylint` and `dylint-link` because the driver is being
-/// built at runtime on demand. These must be built using a custom version of the
-/// toolchain, as the linter utilizes the unstable rustc API.
-///
-/// This function takes a `_working_dir` which is only used for unit tests.
-fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
+/// Check that the Dylint tools are available. Rustup installs the linter's compiler
+/// and components from the ink lint workspace's `rust-toolchain.toml` on demand.
+fn check_dylint_requirements() -> Result<()> {
     let execute_cmd = |cmd: &mut Command| {
         let mut child = if let Ok(child) = cmd
             .stdout(std::process::Stdio::null())
@@ -669,35 +654,6 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
         })
     };
 
-    // Check if the required toolchain is present and is installed with `rustup`.
-    if let Ok(output) = Command::new("rustup").arg("toolchain").arg("list").output() {
-        anyhow::ensure!(
-            String::from_utf8_lossy(&output.stdout).contains(linting::TOOLCHAIN_VERSION),
-            format!(
-                "Toolchain `{0}` was not found!\n\
-                This specific version is required to provide additional source code analysis.\n\n\
-                You can install it by executing:\n\
-                  rustup install {0}\n\
-                  rustup component add rust-src --toolchain {0}\n\
-                  rustup run {0} cargo install cargo-dylint dylint-link",
-                linting::TOOLCHAIN_VERSION,
-            )
-            .to_string()
-            .bright_yellow());
-    } else {
-        anyhow::bail!(format!(
-            "Toolchain `{0}` was not found!\n\
-            This specific version is required to provide additional source code analysis.\n\n\
-            Install `rustup` according to https://rustup.rs/ and then run:\
-              rustup install {0}\n\
-              rustup component add rust-src --toolchain {0}\n\
-              rustup run {0} cargo install cargo-dylint dylint-link",
-            linting::TOOLCHAIN_VERSION,
-        )
-        .to_string()
-        .bright_yellow());
-    }
-
     // when testing this function we should never fall back to a `cargo` specified
     // in the env variable, as this would mess with the mocked binaries.
     #[cfg(not(test))]
@@ -708,7 +664,7 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     if !execute_cmd(Command::new(cargo).arg("dylint").arg("--version")) {
         anyhow::bail!("cargo-dylint was not found!\n\
             Make sure it is installed and the binary is in your PATH environment.\n\n\
-            You can install it by executing `cargo install cargo-dylint`."
+            You can install it by executing `cargo +stable install cargo-dylint dylint-link --version 6.3.2 --locked`."
             .to_string()
             .bright_yellow());
     }
@@ -723,7 +679,7 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     if !dylint_link_found {
         anyhow::bail!("dylint-link was not found!\n\
             Make sure it is installed and the binary is in your PATH environment.\n\n\
-            You can install it by executing `cargo install dylint-link`."
+            You can install it by executing `cargo +stable install cargo-dylint dylint-link --version 6.3.2 --locked`."
             .to_string()
             .bright_yellow());
     }
